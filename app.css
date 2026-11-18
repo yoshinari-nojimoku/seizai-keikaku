@@ -349,3 +349,11 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .card .c-sp { font-size: 10pt; }
   .card .c-rest { font-size: 6.3pt; }
 }
+
+/* 生産順：原木の長さ（4M）を大きく（2026-11-18 専務） */
+.qi .sp { width: 82px; gap: 2px; }
+.qi .sp small { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 24px; line-height: 1; color: var(--ink); }
+@media (max-width: 760px) {
+  .qi .sp { width: 60px; }
+  .qi .sp small { font-size: 18px; }
+}
