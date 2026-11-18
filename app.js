@@ -58,6 +58,7 @@ function openEditor(e) {
   $('f-lane').innerHTML = Store.lanes.filter(l => l.active || l.id === Number(e.lane_id))
     .map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
   $('f-lane').value = e.lane_id;
+  halfVisible();
   $('f-from').value = e.date_from;
   $('f-to').value = e.date_to;
   $('f-fromh').value = String(e.from_half ?? 0);
@@ -81,9 +82,17 @@ function setStatus(v) {
   document.querySelectorAll('#f-status [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
 }
 
+// 工場（飛鳥・本社）だけ午前・午後を選べる。ほかの段は1日単位
+const isFactoryLane = id => (Store.lanes.find(l => l.id === Number(id)) || {}).kind === '工場';
+function halfVisible() {
+  const show = isFactoryLane($('f-lane').value);
+  $('f-fromh').classList.toggle('hide', !show);
+  $('f-toh').classList.toggle('hide', !show);
+}
 function formValue() {
+  const f = isFactoryLane($('f-lane').value);
   return { ...S.edit, lane_id: $('f-lane').value, date_from: $('f-from').value, date_to: $('f-to').value,
-    from_half: Number($('f-fromh').value), to_half: Number($('f-toh').value), body: $('f-body').value };
+    from_half: f ? Number($('f-fromh').value) : 0, to_half: f ? Number($('f-toh').value) : 1, body: $('f-body').value };
 }
 
 let pastTimer = null;
@@ -193,7 +202,7 @@ function fixRange() {
 }
 $('f-from').onchange = fixRange;
 $('f-fromh').onchange = fixRange;
-$('f-lane').onchange = searchPast;
+$('f-lane').onchange = () => { halfVisible(); searchPast(); };
 $('p-q').oninput = searchPast;
 $('f-body').addEventListener('input', () => { if (!$('p-q').value.trim()) searchPast(); });
 $('p-list').addEventListener('click', ev => {
