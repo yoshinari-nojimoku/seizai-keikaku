@@ -329,3 +329,23 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .subbar .btn { padding: 6px 16px; }
   .dl-day .card { font-size: 16px; }
 }
+
+/* カードの中身のメリハリ（2026-11-18 専務「最初の樹種は大きく」） */
+.c-title { font-weight: 800; }
+.c-sp { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; margin-right: 2px; }
+.card.hinoki .c-sp { color: #B2385F; }
+.card.sugi .c-sp { color: #2F7FAA; }
+.c-rest { font-weight: 600; color: var(--burn2); }
+@media screen {
+  .card .c-title { font-size: 17px; line-height: 1.35; }
+  .card .c-sp { font-size: 26px; line-height: 1; vertical-align: -2px; }
+  .card .c-rest { font-size: 13px; line-height: 1.45; margin-top: 2px; }
+  .card .c-span { font-size: 11px; opacity: .8; }
+  .dl-day .card .c-title { font-size: 17px; }
+  .dl-day .card .c-rest { font-size: 14px; }
+}
+@media print {
+  .card .c-title { font-size: 7.5pt; }
+  .card .c-sp { font-size: 10pt; }
+  .card .c-rest { font-size: 6.3pt; }
+}

@@ -67,12 +67,20 @@ function dayClass(day, holidays) {
   return c.join(' ');
 }
 
+// カードの中身にメリハリ：1行目＝大きく（先頭の樹種はさらに大きく）、2行目から＝小さく
+function bodyHtml(body) {
+  const lines = String(body ?? '').split(/\r?\n/);
+  const first = esc(lines[0]).replace(/^(\s*)(桧|檜|杉|ヒノキ|スギ)/, '$1<span class="c-sp">$2</span>');
+  const rest = lines.slice(1).map(esc).join('<br>');
+  return `<div class="c-title">${first}</div>${rest ? `<div class="c-rest">${rest}</div>` : ''}`;
+}
+
 function cardInner(e, rangeFrom, rangeTo, daily = false) {
   const cutL = e.date_from < rangeFrom, cutR = e.date_to > rangeTo;
   const sp = spanText(e, daily), span = sp ? `<span class="c-span">${sp}</span>` : '';
   const st = e.status !== '予定' ? `<span class="c-st">${esc(e.status)}</span>` : '';
   const auto = e.source === 'queue' ? '<span class="c-auto">自動</span>' : '';
-  return `${cutL ? '<span class="c-cut">◀</span>' : ''}${auto}${st}${span}<div class="c-body">${esc(e.body).replace(/\n/g, '<br>')}</div>${cutR ? '<span class="c-cut r">▶</span>' : ''}`;
+  return `${cutL ? '<span class="c-cut">◀</span>' : ''}${auto}${st}${span}<div class="c-body">${bodyHtml(e.body)}</div>${cutR ? '<span class="c-cut r">▶</span>' : ''}`;
 }
 
 function cardClass(e) {
