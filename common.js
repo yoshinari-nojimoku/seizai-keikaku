@@ -250,12 +250,14 @@ function queueTitle(it) {
   return [`${it.species || ''}${it.length_m ? +it.length_m + 'M' : ''}`, diaText(it), qtyText(it)].filter(Boolean).join(' ');
 }
 // タイコ後木取り → 1行の文字（予定表のバーの2行目・生産順のカードに出す）
-const GRADES = ['節', 'ム・上', '赤節', '特一等'];
+const GRADES = ['節', 'ム・上', '赤節', '赤ム・上', '特一等'];
+// 等級の欄：赤ム・上は杉のときだけ
+const gradesFor = species => GRADES.filter(g => g !== '赤ム・上' || species === '杉');
 function kidoriText(it) {
   const k = it.kidori;
   if (!k || !k.mode) return '';
   if (k.mode === '構造材') return (k.sizes || []).length ? '構造材 ' + k.sizes.join('・') : '構造材';
-  const g = GRADES.filter(x => k.grades && k.grades[x]).map(x => `${x}${k.grades[x]}㎜`);
+  const g = gradesFor(it.species).filter(x => k.grades && k.grades[x]).map(x => `${x}${k.grades[x]}㎜`);
   return [k.taiko ? `タイコ${k.taiko}` : 'タイコ', g.join('・')].filter(Boolean).join('：');
 }
 function queueBody(it) {

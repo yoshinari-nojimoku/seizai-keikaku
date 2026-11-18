@@ -381,3 +381,4 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
 .grade { min-width: 0; }
 .grade .gname { min-width: 0; flex-shrink: 0; }
 .grade .num { width: 100%; min-width: 0; flex: 1 1 auto; }
+.grade .gname { white-space: nowrap; }

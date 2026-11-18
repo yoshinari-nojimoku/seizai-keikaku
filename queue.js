@@ -171,7 +171,7 @@ function kidoriFormHtml(f) {
       `<button type="button" class="chip sm${other || k.otherOpen ? ' on' : ''}" data-kset="taiko" data-v="other">その他</button></div>`;
     if (other || k.otherOpen) h += `<div class="row" style="margin-top:8px"><input class="num" inputmode="numeric" data-kin="taiko" value="${other ? k.taiko : ''}" placeholder="160"><span class="unit">㎜</span></div>`;
     h += `<div class="lbl">等級ごとに挽く厚さ</div><div class="grades">` +
-      GRADES.map(g => `<label class="grade"><span class="gname">${g}</span><input class="num" inputmode="decimal" data-kin="grade:${g}" value="${(k.grades || {})[g] ?? ''}" placeholder="―"><span class="unit">㎜</span></label>`).join('') +
+      gradesFor(f.species).map(g => `<label class="grade"><span class="gname">${g}</span><input class="num" inputmode="decimal" data-kin="grade:${g}" value="${(k.grades || {})[g] ?? ''}" placeholder="―"><span class="unit">㎜</span></label>`).join('') +
       '</div>';
   } else if (k.mode === '構造材') {
     const cand = kozaiCandidates(f);
