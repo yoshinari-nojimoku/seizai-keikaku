@@ -68,10 +68,13 @@ function dayClass(day, holidays) {
 }
 
 // カードの中身にメリハリ：1行目＝大きく（先頭の樹種はさらに大きく）、2行目から＝小さく
+// 運送会社の名前（赤で目立たせる）。過去8年の計画に出てくる会社＋「〜運輸／〜運送」で終わる名前
+const CARRIER_RE = /(ライズ|中野|[一-龥ァ-ヶ]{2}(?:運輸|運送|急便|物流|陸運))/g;
+const carrier = h => h.replace(CARRIER_RE, '<span class="c-carrier">$1</span>');
 function bodyHtml(body) {
   const lines = String(body ?? '').split(/\r?\n/);
-  const first = esc(lines[0]).replace(/^(\s*)(桧|檜|杉|ヒノキ|スギ)/, '$1<span class="c-sp">$2</span>');
-  const rest = lines.slice(1).map(esc).join('<br>');
+  const first = carrier(esc(lines[0])).replace(/^(\s*)(桧|檜|杉|ヒノキ|スギ)/, '$1<span class="c-sp">$2</span>');
+  const rest = lines.slice(1).map(l => carrier(esc(l))).join('<br>');
   return `<div class="c-title">${first}</div>${rest ? `<div class="c-rest">${rest}</div>` : ''}`;
 }
 

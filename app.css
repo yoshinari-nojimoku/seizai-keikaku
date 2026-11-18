@@ -357,3 +357,6 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .qi .sp { width: 60px; }
   .qi .sp small { font-size: 18px; }
 }
+
+/* 運送会社の名前は赤（2026-11-18 専務） */
+.c-carrier { color: #C0281B; font-weight: 800; }
