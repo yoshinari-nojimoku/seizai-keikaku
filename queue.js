@@ -46,7 +46,8 @@ function qItemHtml(r, i, laneId) {
   const head = it.kind === '止め'
     ? `<span class="sp dg">止め</span><span class="d"><b>${esc(queueTitle(it))}</b><span class="m">${esc(it.memo.split(/\r?\n/).slice(1).join('／'))}</span></span>`
     : `<span class="sp dg">${esc(it.species || '―')}<small>${it.length_m ? +it.length_m + 'M' : ''}</small></span>` +
-      `<span class="d"><b>${esc([diaText(it), qtyText(it)].filter(Boolean).join('　') || '（量が未入力）')}</b><span class="m">${esc(it.memo.replace(/\r?\n/g, '／'))}</span></span>`;
+      `<span class="d"><b>${esc([diaText(it), qtyText(it)].filter(Boolean).join('　') || '（量が未入力）')}</b>` +
+      `<span class="m">${it.kidori && it.kidori.mode ? `<span class="m-kidori">${esc(kidoriText(it))}</span>　` : ''}${esc(it.memo.replace(/\r?\n/g, '／'))}</span></span>`;
   return `<div class="qi ${sp}${i === 0 ? ' now' : ''}${sel}" data-qid="${it.id}" data-lane="${laneId}">` +
     `<span class="no dg">${i + 1}</span>${head}` +
     `<span class="when">${slotText(r.from)}〜<b>${halvesText(r.halves)}</b>${r.manual ? '<span class="man">手で決めた長さ</span>' : ''}</span>` +
@@ -64,7 +65,8 @@ function qColHtml(f) {
     `<span class="st">始まり <b>${slotText(slotWork(start, Store.holidays, Store.stopSet(f.id)))}</b><button data-act="start" data-lane="${f.id}">変える</button><br>終わり <b>${end}</b></span></div>` +
     `<div class="qstart hide" id="qstart-${f.id}">始まり <input type="date" value="${start.day}"><select><option value="0"${start.half ? '' : ' selected'}>午前</option><option value="1"${start.half ? ' selected' : ''}>午後</option></select>` +
     `<button data-act="start-ok" data-lane="${f.id}">決める</button></div>`;
-  h += rs.length ? rs.map((r, i) => qItemHtml(r, i, f.id)).join('') : '<div class="qempty">まだありません。下の「＋ 製材を足す」から入れてください。</div>';
+  h += rs.length ? rs.map((r, i) => qItemHtml(r, i, f.id)).join('')
+    : `<div class="qempty"><span class="logs" style="background-image:url('${ILLUST.logs}')"></span>まだありません。<br>下の「＋ 製材を足す」から入れてください。</div>`;
   h += `<button class="add" data-act="add" data-lane="${f.id}">＋ 製材を足す</button>`;
   if (d.done.length) h += `<div class="qdone">済（押すと生産順に戻せます）：<br>${d.done.map(x => `<span data-act="undo" data-qid="${x.id}" data-lane="${f.id}">${esc(queueTitle(x))}</span>`).join('')}</div>`;
   return h;
@@ -116,7 +118,8 @@ function qFormDraw() {
       `<input class="num" inputmode="numeric" data-in="dia_to" value="${f.dia_to ?? ''}" placeholder="22"><span class="unit">㎝</span></div>`;
     h += `<div class="lbl">量</div><div class="row"><input class="num" inputmode="decimal" data-in="qty" value="${f.qty ?? ''}" placeholder="500">` +
       `<div class="seg" style="flex:0 0 auto">${['本', '㎥'].map(u => `<button type="button" class="chip sm${f.unit === u ? ' on' : ''}" data-set="unit" data-v="${u}">${u}</button>`).join('')}</div></div>`;
-    h += `<div class="lbl">木取り・メモ（自由に）</div><textarea class="txt" data-in="memo" placeholder="例）125バチ　節19㎜／ム・上16㎜">${esc(f.memo)}</textarea>`;
+    h += kidoriFormHtml(f);
+    h += `<div class="lbl">メモ（自由に）</div><textarea class="txt" data-in="memo" placeholder="例）125バチ　節19㎜／ム・上16㎜">${esc(f.memo)}</textarea>`;
     h += `<div class="past" id="qpast"></div>`;
   } else {
     h += `<div class="lbl">何の止め？</div><div class="past">${STOPS.map(s => `<span class="p" data-stop="${esc(s)}">${esc(s)}</span>`).join('')}</div>`;
@@ -133,6 +136,53 @@ function qFormDraw() {
   qs('#qform').innerHTML = h;
   qEst();
   qPastDraw();
+}
+
+// ---- タイコ後木取り ----
+const TAIKO = [210, 175, 145, 140, 130, 125];
+// この径でよく挽く構造材（過去の記録から。無ければ目安の表）
+function kozaiCandidates(f) {
+  const dia = f.dia_from && f.dia_to ? (Number(f.dia_from) + Number(f.dia_to)) / 2 : Number(f.dia_from || f.dia_to || 0);
+  const rows = Store.kozai.filter(r => r.species === f.species && Number(r.length_m) === Number(f.length_m || 0));
+  if (dia && rows.length) {
+    const ds = [...new Set(rows.map(r => r.dia_cm))];
+    const near = ds.reduce((a, b) => (Math.abs(b - dia) < Math.abs(a - dia) ? b : a));
+    return rows.filter(r => r.dia_cm === near).sort((a, b) => a.rank - b.rank).map(r => r.size).slice(0, 8);
+  }
+  const d = dia || 20;
+  if (d < 16) return ['90角', '105角'];
+  if (d < 18) return ['105角', '120角'];
+  if (d < 20) return ['120角', '105×150'];
+  if (d < 24) return ['105×180', '120×150', '120角'];
+  if (d < 28) return ['105×210', '105×240', '120×210'];
+  if (d < 32) return ['120×240', '120×270', '150角'];
+  return ['120×300', '150×300'];
+}
+function kidoriFormHtml(f) {
+  const k = f.kidori || {};
+  let h = `<div class="kidori"><div class="lbl big">タイコ後木取り</div>` +
+    `<div class="seg">${[['タイコ', 'タイコ挽き（板）'], ['構造材', '構造材（角・梁桁）']].map(([v, l]) =>
+      `<button type="button" class="chip sm${k.mode === v ? ' on' : ''}" data-kset="mode" data-v="${v}">${l}</button>`).join('')}</div>`;
+  if (k.mode === 'タイコ') {
+    const other = k.taiko && !TAIKO.includes(Number(k.taiko));
+    h += `<img class="kd-illust" src="${ILLUST.taiko}" alt="丸太→タイコ→板のイラスト"><p class="kd-cap">丸太の左右を落としてタイコにし、そこから板を挽く</p>`;
+    h += `<div class="lbl">タイコ挽寸</div><div class="seg">` +
+      TAIKO.map(n => `<button type="button" class="chip sm${Number(k.taiko) === n && !k.otherOpen ? ' on' : ''}" data-kset="taiko" data-v="${n}">${n}</button>`).join('') +
+      `<button type="button" class="chip sm${other || k.otherOpen ? ' on' : ''}" data-kset="taiko" data-v="other">その他</button></div>`;
+    if (other || k.otherOpen) h += `<div class="row" style="margin-top:8px"><input class="num" inputmode="numeric" data-kin="taiko" value="${other ? k.taiko : ''}" placeholder="160"><span class="unit">㎜</span></div>`;
+    h += `<div class="lbl">等級ごとに挽く厚さ</div><div class="grades">` +
+      GRADES.map(g => `<label class="grade"><span class="gname">${g}</span><input class="num" inputmode="decimal" data-kin="grade:${g}" value="${(k.grades || {})[g] ?? ''}" placeholder="―"><span class="unit">㎜</span></label>`).join('') +
+      '</div>';
+  } else if (k.mode === '構造材') {
+    const cand = kozaiCandidates(f);
+    const sel = k.sizes || [];
+    const all = [...new Set([...cand, ...sel])];
+    h += `<img class="kd-illust" src="${ILLUST.kozai}" alt="丸太→角材のイラスト"><p class="kd-cap">丸太の芯から角・平角を取る（まわりは背板）</p>`;
+    h += `<div class="lbl">この径でよく挽く構造材（押して選ぶ・いくつでも）</div><div class="seg">` +
+      all.map(s => `<button type="button" class="chip sm${sel.includes(s) ? ' on' : ''}" data-kset="size" data-v="${esc(s)}">${esc(s)}</button>`).join('') + '</div>' +
+      `<div class="row" style="margin-top:8px"><input class="txt" data-kin="size_add" placeholder="ほかの寸法（例：105×300）を入れてEnter"></div>`;
+  }
+  return h + '</div>';
 }
 
 // 目安（何日・いつからいつまで）
@@ -281,12 +331,29 @@ document.addEventListener('click', ev => {
     qs('#qform').querySelectorAll(`[data-set="${k}"]`).forEach(b => b.classList.toggle('on', b.dataset.v === v));
     qEst(); return;
   }
+  const ks = ev.target.closest('[data-kset]');
+  if (ks && Q.form) {
+    const k = Q.form.kidori = { ...(Q.form.kidori || {}) };
+    const v = ks.dataset.v;
+    if (ks.dataset.kset === 'mode') { if (k.mode === v) Q.form.kidori = null; else { k.mode = v; k.grades = k.grades || {}; k.sizes = k.sizes || []; } }
+    if (ks.dataset.kset === 'taiko') { if (v === 'other') { k.otherOpen = true; } else { k.taiko = Number(v); k.otherOpen = false; } }
+    if (ks.dataset.kset === 'size') { k.sizes = (k.sizes || []).includes(v) ? k.sizes.filter(x => x !== v) : [...(k.sizes || []), v]; }
+    const y = window.scrollY; qFormDraw(); window.scrollTo(0, y); return;
+  }
   const memo = ev.target.closest('[data-memo]');
   if (memo && Q.form) { Q.form.memo = memo.dataset.memo.replace(/／/g, '\n'); qs('#qform [data-in="memo"]').value = Q.form.memo; return; }
   const stopName = ev.target.closest('[data-stop]');
   if (stopName && Q.form) { Q.form.memo = stopName.dataset.stop; qs('#qform [data-in="memo"]').value = Q.form.memo; qEst(); }
 });
 document.addEventListener('input', ev => {
+  const kin = ev.target.closest('#qform [data-kin]');
+  if (kin && Q.form) {
+    const k = Q.form.kidori = { ...(Q.form.kidori || {}) };
+    const key = kin.dataset.kin, val = kin.value.normalize('NFKC').trim();
+    if (key === 'taiko') k.taiko = val ? Number(val) : null;
+    if (key.startsWith('grade:')) k.grades = { ...(k.grades || {}), [key.slice(6)]: val ? Number(val) : null };
+    return;
+  }
   const el = ev.target.closest('#qform [data-in]');
   if (!el || !Q.form) return;
   const k = el.dataset.in;
@@ -296,4 +363,15 @@ document.addEventListener('input', ev => {
 document.addEventListener('change', ev => {
   const el = ev.target.closest('#qform select[data-in]');
   if (el && Q.form) { Q.form[el.dataset.in] = el.value ? Number(el.value) : null; qEst(); }
+});
+
+document.addEventListener('keydown', ev => {
+  const el = ev.target.closest('#qform [data-kin="size_add"]');
+  if (!el || ev.key !== 'Enter' || !Q.form) return;
+  ev.preventDefault();
+  const v = el.value.normalize('NFKC').replace(/[xX*]/g, '×').trim();
+  if (!v) return;
+  const k = Q.form.kidori = { ...(Q.form.kidori || {}), mode: '構造材' };
+  k.sizes = [...new Set([...(k.sizes || []), v])];
+  qFormDraw();
 });

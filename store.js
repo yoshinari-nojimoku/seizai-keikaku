@@ -12,6 +12,7 @@ const Store = {
   mem: [],   // 試作モードのカード
   speed: [],     // 挽く速さ（工場×樹種×長さ×径級）
   stops: [],     // 製材機を止める半日 [{lane_id, day, half, label}]
+  kozai: [],     // 径ごとによく挽く構造材の寸法 [{species, length_m, dia_cm, size, n, rank}]
   qmem: [],      // 試作モードの生産順
   smem: {},      // 試作モードの生産順の始まり
 
@@ -24,6 +25,7 @@ const Store = {
       this.holidays = Object.fromEntries((s.holidays || []).map(h => [h.day, h.label || '休み']));
       this.speed = s.speed || [];
       this.stops = (s.stops || []).map(x => ({ ...x }));
+      this.kozai = s.kozai || [];
       this.qmem = (s.queue || []).map(q => ({ ...q }));
       this.smem = { ...(s.queue_start || {}) };
       return { ok: true };
@@ -32,12 +34,14 @@ const Store = {
     const { data: { session } } = await this.sb.auth.getSession();
     if (!session) return { needLogin: true };
     this.user = session.user;
-    const [l, h, sp, st] = await Promise.all([
+    const [l, h, sp, st, kz] = await Promise.all([
       this.sb.from('lanes').select('*').order('sort'),
       this.sb.from('holidays').select('*'),
       this.sb.from('speed').select('*'),
       this.sb.from('stops').select('*').gte('day', D.add(D.today(), -120)),
+      this.sb.from('kozai_sizes').select('*'),
     ]);
+    this.kozai = (kz.data || []).map(r => ({ ...r, length_m: Number(r.length_m) }));
     this.stops = st.data || [];
     this.speed = (sp.data || []).map(r => ({ ...r, length_m: Number(r.length_m), per_day: Number(r.per_day), m3_day: Number(r.m3_day) }));
     if (l.error) throw new Error('段の読み込みに失敗しました：' + l.error.message);
@@ -163,6 +167,7 @@ const Store = {
       length_m: it.length_m ? Number(it.length_m) : null, dia_from: it.dia_from ? Number(it.dia_from) : null,
       dia_to: it.dia_to ? Number(it.dia_to) : null, qty: it.qty ? Number(it.qty) : null, unit: it.unit || '本',
       halves_manual: it.halves_manual ? Number(it.halves_manual) : null, memo: (it.memo || '').trim(),
+      kidori: it.kidori && it.kidori.mode ? it.kidori : null,
       status: it.status || '予定', done_at: it.done_at || null };
     if (!this.remote) {
       if (it.id) { const i = this.qmem.findIndex(x => x.id === it.id); this.qmem[i] = { ...this.qmem[i], ...row }; return this.qmem[i]; }

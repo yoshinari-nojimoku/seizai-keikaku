@@ -226,7 +226,7 @@ document.addEventListener('keydown', ev => {
     const err = new URLSearchParams(location.search).get('error_description');
     const errHtml = err ? '<p style="color:var(--maroon)">ログインできませんでした（' + esc(err) + '）。<br>数分おいて、もう一度押してください。</p>' : '';
     if (err) history.replaceState(null, '', location.pathname);
-    gate.innerHTML = '<div class="block msg">' + errHtml + '<p>製材計画を直すには、Googleアカウントでログインしてください。</p><button class="bigbtn dg" id="login">Googleでログイン</button></div>';
+    gate.innerHTML = '<div class="block msg"><img class="hero" src="' + ILLUST.hero + '" alt="製材所のイラスト">' + errHtml + '<p>製材計画を直すには、Googleアカウントでログインしてください。</p><button class="bigbtn dg" id="login">Googleでログイン</button></div>';
     $('login').onclick = () => Store.login();
     return;
   }

@@ -18,7 +18,7 @@ function getKey() {
 }
 
 function askKey(msg) {
-  main.innerHTML = `<div class="block msg"><p>${msg || '合言葉を入れてください（最初の1回だけ）。'}</p>
+  main.innerHTML = `<div class="block msg"><img class="hero" src="${ILLUST.hero}" alt="製材所のイラスト"><p>${msg || '合言葉を入れてください（最初の1回だけ）。'}</p>
     <input id="k" type="password" autocomplete="current-password"><button class="bigbtn dg" id="ok">開く</button></div>`;
   $('ok').onclick = () => { V.key = $('k').value.trim(); try { localStorage.setItem(KEY_NAME, V.key); } catch (e) {} load(); };
   $('k').onkeydown = ev => { if (ev.key === 'Enter') $('ok').click(); };

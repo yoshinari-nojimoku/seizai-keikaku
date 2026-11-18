@@ -27,6 +27,14 @@ function speciesOf(body) {
   return h && !s ? 'hinoki' : s && !h ? 'sugi' : '';
 }
 
+// イラスト（会社の画像生成「チャッピー」・画風いろ。2026-11-18 作成）
+const ILLUST = {
+  hero: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213302-75c674ad2951f18be77b813b6ff1d998-1.jpg',
+  taiko: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213340-f761d4e24f2cec4dc630d371f2d47f0b-1.jpg',
+  kozai: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213406-1c3662ce39770c1a612545aae8e57371-1.jpg',
+  logs: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213434-f1c3e098bab459567c4e5f345f30bdff-1.jpg',
+};
+
 // 半日（0＝午前・1＝午後）。古いデータに無ければまる1日とみなす
 const HALF = ['午前', '午後'];
 const fh = e => (e.from_half ?? 0), th = e => (e.to_half ?? 1);
@@ -241,9 +249,18 @@ function queueTitle(it) {
   if (it.kind === '止め') return it.memo.split(/\r?\n/)[0] || '止め';
   return [`${it.species || ''}${it.length_m ? +it.length_m + 'M' : ''}`, diaText(it), qtyText(it)].filter(Boolean).join(' ');
 }
+// タイコ後木取り → 1行の文字（予定表のバーの2行目・生産順のカードに出す）
+const GRADES = ['節', 'ム・上', '赤節', '特一等'];
+function kidoriText(it) {
+  const k = it.kidori;
+  if (!k || !k.mode) return '';
+  if (k.mode === '構造材') return (k.sizes || []).length ? '構造材 ' + k.sizes.join('・') : '構造材';
+  const g = GRADES.filter(x => k.grades && k.grades[x]).map(x => `${x}${k.grades[x]}㎜`);
+  return [k.taiko ? `タイコ${k.taiko}` : 'タイコ', g.join('・')].filter(Boolean).join('：');
+}
 function queueBody(it) {
   if (it.kind === '止め') return it.memo || '止め';
-  return queueTitle(it) + (it.memo ? '\n' + it.memo : '');
+  return [queueTitle(it), kidoriText(it), it.memo].filter(Boolean).join('\n');
 }
 
 // 挽く速さ（本/日・㎥/日）を探す：工場×樹種×長さ×径級 → 工場×樹種×長さ → 工場×樹種 → 工場
