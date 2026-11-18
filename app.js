@@ -43,6 +43,8 @@ function openEditor(e) {
   $('f-lane').value = e.lane_id;
   $('f-from').value = e.date_from;
   $('f-to').value = e.date_to;
+  $('f-fromh').value = String(e.from_half ?? 0);
+  $('f-toh').value = String(e.to_half ?? 1);
   $('f-body').value = e.body || '';
   setStatus(S.edit.status);
   $('f-hl').classList.toggle('on', !!S.edit.color);
@@ -63,7 +65,8 @@ function setStatus(v) {
 }
 
 function formValue() {
-  return { ...S.edit, lane_id: $('f-lane').value, date_from: $('f-from').value, date_to: $('f-to').value, body: $('f-body').value };
+  return { ...S.edit, lane_id: $('f-lane').value, date_from: $('f-from').value, date_to: $('f-to').value,
+    from_half: Number($('f-fromh').value), to_half: Number($('f-toh').value), body: $('f-body').value };
 }
 
 let pastTimer = null;
@@ -107,7 +110,7 @@ function copyCard() {
   const v = formValue();
   const len = D.diff(v.date_from, v.date_to);
   const nf = D.add(v.date_to, 1);
-  openEditor({ lane_id: v.lane_id, date_from: nf, date_to: D.add(nf, len), body: v.body, status: '予定', color: v.color });
+  openEditor({ lane_id: v.lane_id, date_from: nf, date_to: D.add(nf, len), from_half: v.from_half, to_half: v.to_half, body: v.body, status: '予定', color: v.color });
   toast('複製しました。日付を直して保存してください');
 }
 
@@ -116,7 +119,8 @@ main.addEventListener('click', ev => {
   const card = ev.target.closest('.card[data-id]');
   if (card) { const e = S.entries.find(x => String(x.id) === card.dataset.id); if (e) openEditor(e); return; }
   const cell = ev.target.closest('.g-cell[data-lane]');
-  if (cell) { openEditor({ lane_id: cell.dataset.lane, date_from: cell.dataset.date, date_to: cell.dataset.date, body: '' }); return; }
+  // 午前のマス＝その日まる1日、午後のマス＝その日の午後だけ、で開く（窓の中で直せる）
+  if (cell) { openEditor({ lane_id: cell.dataset.lane, date_from: cell.dataset.date, date_to: cell.dataset.date, from_half: Number(cell.dataset.half || 0), to_half: 1, body: '' }); return; }
   const add = ev.target.closest('.dl-add');
   if (add) {
     const first = Store.lanes.find(l => l.active);
@@ -139,7 +143,13 @@ $('f-save').onclick = save;
 $('f-del').onclick = del;
 $('f-copy').onclick = copyCard;
 $('f-close').onclick = () => $('dlg').close();
-$('f-from').onchange = () => { if ($('f-to').value < $('f-from').value) $('f-to').value = $('f-from').value; };
+// 終わりが始まりより前にならないようにそろえる
+function fixRange() {
+  if ($('f-to').value < $('f-from').value) $('f-to').value = $('f-from').value;
+  if ($('f-to').value === $('f-from').value && $('f-toh').value < $('f-fromh').value) $('f-toh').value = $('f-fromh').value;
+}
+$('f-from').onchange = fixRange;
+$('f-fromh').onchange = fixRange;
 $('f-lane').onchange = searchPast;
 $('p-q').oninput = searchPast;
 $('f-body').addEventListener('input', () => { if (!$('p-q').value.trim()) searchPast(); });

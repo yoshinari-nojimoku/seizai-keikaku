@@ -50,10 +50,12 @@ const Store = {
 
   // 保存（id があれば上書き、なければ新規）。保存後のカードを返す
   async save(e) {
-    const row = { lane_id: Number(e.lane_id), date_from: e.date_from, date_to: e.date_to, body: e.body.trim(),
+    const row = { lane_id: Number(e.lane_id), date_from: e.date_from, date_to: e.date_to,
+      from_half: Number(e.from_half ?? 0), to_half: Number(e.to_half ?? 1), body: e.body.trim(),
       status: e.status || '予定', color: e.color || null };
     if (!row.body) throw new Error('中身が空です');
-    if (row.date_to < row.date_from) throw new Error('終わりの日が始まりの日より前です');
+    if (row.date_to < row.date_from || (row.date_to === row.date_from && row.to_half < row.from_half))
+      throw new Error('終わりが始まりより前になっています');
     if (!this.remote) {
       if (e.id) { const i = this.mem.findIndex(x => x.id === e.id); this.mem[i] = { ...this.mem[i], ...row }; return this.mem[i]; }
       const n = { ...row, id: 'local-' + Date.now(), source: 'app' }; this.mem.push(n); return n;

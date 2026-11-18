@@ -27,16 +27,28 @@ function speciesOf(body) {
   return h && !s ? 'hinoki' : s && !h ? 'sugi' : '';
 }
 
-// 1つの段の中で、期間が重なるカードを別の行（トラック）に振り分ける
+// 半日（0＝午前・1＝午後）。古いデータに無ければまる1日とみなす
+const HALF = ['午前', '午後'];
+const fh = e => (e.from_half ?? 0), th = e => (e.to_half ?? 1);
+const startKey = e => e.date_from + fh(e), endKey = e => e.date_to + th(e);   // 文字の大小で前後が比べられる
+
+// 1つの段の中で、期間が重なるカードを別の行（トラック）に振り分ける（半日単位）
 function packTracks(list) {
-  const sorted = [...list].sort((a, b) => a.date_from.localeCompare(b.date_from) || b.date_to.localeCompare(a.date_to));
+  const sorted = [...list].sort((a, b) => startKey(a).localeCompare(startKey(b)) || endKey(b).localeCompare(endKey(a)));
   const ends = [];
   for (const e of sorted) {
-    let t = ends.findIndex(end => end < e.date_from);
-    if (t < 0) { t = ends.length; ends.push(e.date_to); } else ends[t] = e.date_to;
+    let t = ends.findIndex(end => end < startKey(e));
+    if (t < 0) { t = ends.length; ends.push(endKey(e)); } else ends[t] = endKey(e);
     e._track = t;
   }
   return { cards: sorted, tracks: ends.length };
+}
+
+// 期間の書き方：まる1日なら何も出さない／半日なら「午前」「午後」／何日かなら「11/17午後〜11/18午前」
+function spanText(e) {
+  if (e.date_to > e.date_from) return `${D.md(e.date_from)}${fh(e) ? '午後' : ''}〜${D.md(e.date_to)}${th(e) ? '' : '午前'}`;
+  if (fh(e) === th(e)) return HALF[fh(e)];
+  return '';
 }
 
 // 表示する段：使っている段は全部。使っていない段は、その期間にカードがあるときだけ
@@ -55,7 +67,7 @@ function dayClass(day, holidays) {
 
 function cardInner(e, rangeFrom, rangeTo) {
   const cutL = e.date_from < rangeFrom, cutR = e.date_to > rangeTo;
-  const span = e.date_to > e.date_from ? `<span class="c-span">${D.md(e.date_from)}〜${D.md(e.date_to)}</span>` : '';
+  const sp = spanText(e), span = sp ? `<span class="c-span">${sp}</span>` : '';
   const st = e.status !== '予定' ? `<span class="c-st">${esc(e.status)}</span>` : '';
   return `${cutL ? '<span class="c-cut">◀</span>' : ''}${st}${span}<div class="c-body">${esc(e.body).replace(/\n/g, '<br>')}</div>${cutR ? '<span class="c-cut r">▶</span>' : ''}`;
 }
@@ -64,18 +76,23 @@ function cardClass(e) {
   return ['card', speciesOf(e.body), e.status === '済' ? 'done' : '', e.status === '中止' ? 'cancel' : '', e.color ? 'hl' : ''].join(' ');
 }
 
-// 1週間分の週表（段×日）。editable なら空いたマスを押してカードを足せる
+// 週表（段×日）。1日を午前・午後の2マスに分ける。何週でも横に1枚でつなげる
+// editable なら空いたマスを押してカードを足せる
 function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, editable = false, showAll = false }) {
   const to = D.add(from, days - 1);
   const inRange = entries.filter(e => e.date_from <= to && e.date_to >= from);
   const ls = visibleLanes(lanes, inRange, showAll);
   const dayList = Array.from({ length: days }, (_, i) => D.add(from, i));
-  let html = `<div class="grid" style="--days:${days}">`;
-  html += `<div class="g-corner">${D.md(from)}〜${D.md(to)}</div>`;
+  const wk = i => (i > 0 && D.parse(dayList[i]).getDay() === 1 ? ' wk' : '');   // 週の変わり目（月曜の左）に太い線
+  let html = `<div class="grid" style="--cols:${days * 2}">`;
+  html += `<div class="g-corner" style="grid-row:1 / span 2">${D.md(from)}〜${D.md(to)}</div>`;
   dayList.forEach((d, i) => {
-    html += `<div class="g-day ${dayClass(d, holidays)}" style="grid-column:${i + 2}">${D.md(d)}<small>${D.wd(d)}${holidays[d] ? '・' + esc(holidays[d]) : ''}</small></div>`;
+    html += `<div class="g-day ${dayClass(d, holidays)}${wk(i)}" style="grid-row:1;grid-column:${i * 2 + 2} / span 2">${D.md(d)}<small>${D.wd(d)}${holidays[d] ? '・' + esc(holidays[d]) : ''}</small></div>`;
+    HALF.forEach((h, k) => {
+      html += `<div class="g-half ${dayClass(d, holidays)}${k ? ' pm' : wk(i)}" style="grid-row:2;grid-column:${i * 2 + 2 + k}">${h}</div>`;
+    });
   });
-  let row = 2;
+  let row = 3;
   for (const lane of ls) {
     const { cards, tracks } = packTracks(inRange.filter(e => e.lane_id === lane.id));
     const n = Math.max(1, tracks + (editable ? 1 : 0));
@@ -83,13 +100,15 @@ function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, editabl
     html += `<div class="g-lane k-${esc(lane.kind)}${empty}" style="grid-row:${row} / span ${n}">${esc(lane.name)}</div>`;
     for (let t = 0; t < n; t++) {
       dayList.forEach((d, i) => {
-        html += `<div class="g-cell ${dayClass(d, holidays)}${t === n - 1 ? ' last' : ''}${empty}${editable && t === n - 1 && n > 1 ? ' spare' : ''}" style="grid-row:${row + t};grid-column:${i + 2}"` +
-          (editable ? ` data-lane="${lane.id}" data-date="${d}"` : '') + '></div>';
+        for (let k = 0; k < 2; k++) {
+          html += `<div class="g-cell ${dayClass(d, holidays)}${k ? ' pm' : wk(i)}${t === n - 1 ? ' last' : ''}${empty}${editable && t === n - 1 && n > 1 ? ' spare' : ''}" style="grid-row:${row + t};grid-column:${i * 2 + 2 + k}"` +
+            (editable ? ` data-lane="${lane.id}" data-date="${d}" data-half="${k}" title="${D.md(d)} ${HALF[k]}"` : '') + '></div>';
+        }
       });
     }
     for (const e of cards) {
-      const c1 = Math.max(0, D.diff(from, e.date_from)) + 2;
-      const c2 = Math.min(days - 1, D.diff(from, e.date_to)) + 3;
+      const c1 = Math.max(0, D.diff(from, e.date_from) * 2 + fh(e)) + 2;
+      const c2 = Math.min(days * 2 - 1, D.diff(from, e.date_to) * 2 + th(e)) + 3;
       html += `<div class="${cardClass(e)}" data-id="${e.id}" style="grid-row:${row + e._track};grid-column:${c1} / ${c2}">${cardInner(e, from, to)}</div>`;
     }
     row += n;
@@ -105,7 +124,7 @@ function renderDayList({ from, days, lanes, entries, holidays = {}, editable = f
   for (let i = 0; i < days; i++) {
     const d = D.add(from, i);
     const todays = entries.filter(e => e.date_from <= d && e.date_to >= d)
-      .sort((a, b) => (byId[a.lane_id]?.sort ?? 999) - (byId[b.lane_id]?.sort ?? 999) || a.date_from.localeCompare(b.date_from));
+      .sort((a, b) => (byId[a.lane_id]?.sort ?? 999) - (byId[b.lane_id]?.sort ?? 999) || startKey(a).localeCompare(startKey(b)));
     html += `<section class="dl-day ${dayClass(d, holidays)}"><h3>${D.md(d)}<small>（${D.wd(d)}）${holidays[d] ? esc(holidays[d]) : ''}</small>` +
       (editable ? `<button class="dl-add" data-date="${d}">＋</button>` : '') + '</h3>';
     if (!todays.length) html += '<p class="dl-none">予定なし</p>';
@@ -120,12 +139,29 @@ function renderDayList({ from, days, lanes, entries, holidays = {}, editable = f
   return html + '</div>';
 }
 
-// 期間を1週ずつに分けた週表を並べる（画面でも印刷でも1週＝1枚）
+// 週表を出す（2週でも横に1枚でつなげる。印刷も1枚）
 function renderWeeks(opts) {
-  const weeks = Math.ceil(opts.days / 7);
-  let html = '';
-  for (let w = 0; w < weeks; w++) {
-    html += `<div class="week">${renderWeekGrid({ ...opts, from: D.add(opts.from, w * 7), days: 7 })}</div>`;
-  }
-  return html;
+  return `<div class="week">${renderWeekGrid(opts)}</div>`;
 }
+
+// 印刷：A4横1枚に収まるよう、週表を縮める（はみ出すときだけ）
+(function () {
+  const PAGE_H = (210 - 14) / 25.4 * 96;   // A4横の高さ−余白（px）
+  function fit() {
+    document.querySelectorAll('.week').forEach(w => {
+      w.style.zoom = '';
+      const head = w.querySelector('.print-head');
+      const avail = PAGE_H - (head ? head.offsetHeight + 8 : 0) - 4;
+      const fits = z => { w.style.zoom = String(z); return w.getBoundingClientRect().height <= avail; };
+      if (fits(1)) { w.style.zoom = ''; return; }
+      let lo = 0.45, hi = 1;   // 収まるいちばん大きい倍率を探す（縮めると横に広がって行が減るので、割り算では決まらない）
+      for (let i = 0; i < 8; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; }
+      w.style.zoom = String(lo);
+    });
+  }
+  function unfit() { document.querySelectorAll('.week').forEach(w => { w.style.zoom = ''; }); }
+  const mq = window.matchMedia('print');
+  mq.addEventListener('change', e => (e.matches ? fit() : unfit()));
+  window.addEventListener('beforeprint', fit);
+  window.addEventListener('afterprint', unfit);
+})();

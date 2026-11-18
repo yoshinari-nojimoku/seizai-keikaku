@@ -35,14 +35,21 @@ main { padding: 16px; }
 .msg input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid var(--g200); border-radius: 8px; margin: 12px 0; }
 
 /* 週表 */
-.week { margin-bottom: 20px; }
-.grid { display: grid; grid-template-columns: 112px repeat(var(--days), minmax(0, 1fr)); grid-auto-rows: minmax(34px, auto);
+.week { margin-bottom: 20px; overflow-x: auto; }
+.grid { display: grid; grid-template-columns: 112px repeat(var(--cols), minmax(0, 1fr)); grid-auto-rows: minmax(34px, auto);
+  min-width: calc(112px + var(--cols) * 34px);
   background: var(--white); border: 1px solid var(--g200); border-radius: 10px; overflow: hidden; }
 .g-corner { grid-row: 1; grid-column: 1; background: var(--teal-soft); color: var(--teal-deep); font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; border-bottom: 2px solid var(--teal); }
 .g-day { grid-row: 1; text-align: center; padding: 4px 2px; font-weight: 700; border-bottom: 2px solid var(--teal);
   border-left: 1px solid var(--g100); background: var(--teal-soft); line-height: 1.2; }
 .g-day small { display: block; font-weight: 400; font-size: 11px; }
+.g-day { border-bottom: 1px solid var(--g200); }
+.g-half { grid-row: 2; text-align: center; font-size: 10px; color: var(--g600); background: var(--teal-soft); line-height: 16px;
+  border-left: 1px solid var(--g100); border-bottom: 2px solid var(--teal); }
+.g-half.pm { border-left: 1px dashed var(--g200); }
+.g-half.off { background: var(--off); }
+.g-day.wk, .g-half.wk, .g-cell.wk { border-left: 2px solid var(--teal); }   /* 週の変わり目 */
 .g-day.off { background: var(--off); color: var(--red); }
 .g-day.sat { color: var(--teal-deep); }
 .g-day.today { box-shadow: inset 0 -4px 0 var(--yellow); }
@@ -56,6 +63,7 @@ main { padding: 16px; }
 .g-cell.sat { background: var(--sat); }
 .g-cell[data-lane]:hover { background: var(--yellow-soft); cursor: copy; }
 .g-cell.last { border-bottom: 1px solid var(--g200); }
+.g-cell.pm { border-left: 1px dashed var(--g100); }   /* 午前と午後の間は点線 */
 
 /* カード */
 .card { margin: 3px; padding: 5px 7px; border-radius: 6px; background: var(--white); border: 1px solid var(--g200);
@@ -106,6 +114,9 @@ dialog::backdrop { background: rgba(61,57,57,.35); }
   border: 1px solid var(--g200); border-radius: 8px; font-family: inherit; background: var(--white); }
 .dlg textarea { min-height: 150px; line-height: 1.6; }
 .dlg .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dlg .dh { display: flex; gap: 4px; }
+.dlg .dh input { flex: 1; min-width: 0; }
+.dlg .dh select { width: auto; padding: 8px 4px; }
 .dlg .seg { display: flex; gap: 6px; flex-wrap: wrap; }
 .dlg .acts { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .dlg .acts .spacer { flex: 1; }
@@ -131,10 +142,11 @@ dialog::backdrop { background: rgba(61,57,57,.35); }
   main { padding: 0; }
   .weeks { display: block !important; }
   .daylist { display: none !important; }
-  .week { page-break-after: always; break-after: page; margin: 0; }
-  .week:last-child { page-break-after: auto; break-after: auto; }
+  .week { margin: 0; break-inside: avoid; }   /* 2週でも横につないだ1枚。はみ出すときは common.js が縮める */
   .print-head { display: flex !important; justify-content: space-between; font-size: 9pt; margin-bottom: 2mm; }
-  .grid { border-radius: 0; grid-template-columns: 24mm repeat(var(--days), minmax(0, 1fr)); grid-auto-rows: minmax(0, auto); }
+  .week { overflow: visible; }
+  .grid { border-radius: 0; grid-template-columns: 22mm repeat(var(--cols), minmax(0, 1fr)); grid-auto-rows: minmax(0, auto); min-width: 0; }
+  .g-half { font-size: 5.5pt; line-height: 1.4; }
   .g-cell { min-height: 5mm; }
   .g-lane.empty, .g-cell.empty, .g-cell.spare { display: none; }   /* 空の段と、足す用の空き行は印刷しない */
   .g-day { padding: .8mm 0; }
