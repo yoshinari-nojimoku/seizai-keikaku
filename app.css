@@ -383,3 +383,33 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
 .grade .num { width: 100%; min-width: 0; flex: 1 1 auto; }
 .grade .gname { white-space: nowrap; }
 .num:disabled { background: #EFE6D2; color: var(--burn2); }
+
+/* 飛鳥・本社の段は高さ一定（画面いっぱいに収まる高さ。common.js の fitFactoryRows が --frow を決める） */
+@media screen {
+  .g-cell.frow { height: var(--frow, 140px); min-height: 0; }
+  .card.fcard { max-height: calc(var(--frow, 140px) - 6px); overflow: hidden; cursor: pointer; }
+  .card.fcard.clip::after { content: '…続きは押して'; position: absolute; right: 4px; bottom: 2px; font-size: 11px; font-weight: 800;
+    color: var(--burn); background: rgba(255,251,241,.92); border-radius: 6px; padding: 0 6px; }
+}
+/* カードのポップアップ */
+.cardpop { position: fixed; z-index: 70; width: min(420px, 94vw); max-height: 70vh; overflow: auto; padding: 12px; }
+.cardpop .cp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; color: var(--ink); }
+.cardpop .cp-head b { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 18px; }
+.cardpop .cp-head span { font-weight: 800; color: var(--burn2); }
+.cardpop .cp-x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--burn); background: var(--paper); font-size: 18px; line-height: 1; color: var(--burn); }
+.cardpop .cp-card { margin: 0; max-height: none; cursor: default; }
+.cardpop .cp-card .c-title { font-size: 19px; }
+.cardpop .cp-card .c-sp { font-size: 28px; }
+.cardpop .cp-card .c-rest { font-size: 15px; }
+.cardpop .cp-acts { display: flex; justify-content: flex-end; margin-top: 10px; }
+.cardpop .cp-edit { border: 3px solid var(--ink); background: var(--plus); color: #fff; border-radius: 12px; padding: 8px 20px; font-size: 16px; font-weight: 800; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
+@media print { .cardpop { display: none !important; } .g-cell.frow { height: auto !important; } .card.fcard { max-height: none !important; overflow: visible !important; } .card.fcard.clip::after { display: none; } }
+
+/* ほかの段（花尻・引き取り元・原木市など）は2行ほどで切る。押すとポップアップで全部 */
+@media screen {
+  .g-cell:not(.frow) { min-height: 36px; }
+  .card.dcard { max-height: 58px; overflow: hidden; cursor: pointer; }
+  .card.fcard.clip::after, .card.dcard.clip::after { content: '⋯'; position: absolute; right: 4px; bottom: 0; font-size: 16px; font-weight: 800;
+    line-height: 1; color: var(--burn); background: rgba(255,251,241,.95); border-radius: 6px; padding: 0 5px 2px; }
+}
+@media print { .card.dcard { max-height: none !important; overflow: visible !important; } .card.dcard.clip::after { display: none; } }

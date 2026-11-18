@@ -43,10 +43,21 @@ async function load() {
   // 印刷のときは各週の上に見出しを付ける
   const weeks = renderWeeks(opts).replace(/<div class="week block">/g, () =>
     `<div class="week block"><div class="print-head"><b>製材計画</b><span>印刷 ${new Date().toLocaleString('ja-JP')}／最終更新 ${upd}</span></div>`);
+  V.entries = data.entries; V.lanes = data.lanes;
   main.innerHTML = `<div class="weeks">${weeks}</div>${renderDayList(opts).replace(/class="dl-day /g, 'class="dl-day block ')}`;
 }
 
 // ◀ ▶＝1日ずつ／◀◀ ▶▶＝1週ずつ
+// 週表のカードを押すと全文をポップアップ（見るだけ）
+main.addEventListener('click', ev => {
+  const card = ev.target.closest('.weeks .card[data-id]');
+  if (!card || !V.entries) return;
+  const e = V.entries.find(x => String(x.id) === card.dataset.id);
+  if (e) showCardPop(e, card, V.lanes, null);
+});
+window.addEventListener('resize', () => fitFactoryRows(main));
+new MutationObserver(() => fitFactoryRows(main)).observe(main, { childList: true });
+
 $('prev').onclick = () => { V.from = D.add(V.from, -1); load(); };
 $('next').onclick = () => { V.from = D.add(V.from, 1); load(); };
 $('prevw').onclick = () => { V.from = D.add(V.from, -7); load(); };

@@ -147,7 +147,7 @@ function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, stops =
       dayList.forEach((d, i) => {
         for (let k = 0; k < 2; k++) {
           const stopped = factory && stops[`${lane.id}|${d}|${k}`] ? ' stopped' : '';
-          html += `<div class="g-cell ${dayClass(d, holidays)}${k ? ' pm' : wk(i)}${t === n - 1 ? ' last' : ''}${empty}${stopped}" style="grid-row:${row + t};grid-column:${i * 2 + 2 + k}"` +
+          html += `<div class="g-cell frow ${dayClass(d, holidays)}${k ? ' pm' : wk(i)}${t === n - 1 ? ' last' : ''}${empty}${stopped}" style="grid-row:${row + t};grid-column:${i * 2 + 2 + k}"` +
             (editable ? (factory ? ` data-stop-lane="${lane.id}" data-date="${d}" data-half="${k}" title="${D.md(d)} ${HALF[k]}：押すと製材機を止める／戻す"`
                                  : ` data-lane="${lane.id}" data-date="${d}" data-half="${k}" title="${D.md(d)} ${HALF[k]}"`) : '') + '></div>';
         }
@@ -156,7 +156,7 @@ function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, stops =
     for (const e of cards) {
       const c1 = Math.max(0, D.diff(from, e.date_from) * 2 + (daily ? 0 : fh(e))) + 2;
       const c2 = Math.min(days * 2 - 1, D.diff(from, e.date_to) * 2 + (daily ? 1 : th(e))) + 3;
-      html += `<div class="${cardClass(e)}" data-id="${e.id}" style="grid-row:${row + e._track};grid-column:${c1} / ${c2}">${cardInner(e, from, to, daily)}</div>`;
+      html += `<div class="${cardClass(e)}${factory ? ' fcard' : ' dcard'}" data-id="${e.id}" style="grid-row:${row + e._track};grid-column:${c1} / ${c2}">${cardInner(e, from, to, daily)}</div>`;
     }
     row += n;
   }
@@ -195,6 +195,52 @@ function renderDayList({ from, days, lanes, entries, holidays = {}, stops = {}, 
 function renderWeeks(opts) {
   return `<div class="week block">${renderWeekGrid(opts)}</div>`;
 }
+
+// ===== 飛鳥・本社の段の高さを一定にして、表が画面いっぱいに収まるようにする =====
+// 文字があふれたカードは下を切り、「…」の印を出す（押すとポップアップで全部見られる）
+function fitFactoryRows(root) {
+  const grid = root.querySelector('.weeks .grid');
+  if (!grid || !grid.offsetParent || window.matchMedia('print').matches) return;
+  const rows = new Set([...grid.querySelectorAll('.g-cell.frow')].map(c => c.style.gridRow));
+  const n = rows.size;
+  if (!n) return;
+  const base = 100;
+  grid.style.setProperty('--frow', base + 'px');
+  const H = grid.offsetHeight;
+  const top = grid.getBoundingClientRect().top + window.scrollY;
+  const avail = window.innerHeight - top - 28;
+  const frow = Math.max(110, Math.floor((avail - (H - n * base)) / n));
+  grid.style.setProperty('--frow', frow + 'px');
+  grid.querySelectorAll('.card.fcard, .card.dcard').forEach(c => c.classList.toggle('clip', c.scrollHeight > c.clientHeight + 2));
+}
+
+// ===== カードを押したときのポップアップ（全文を見る） =====
+function closeCardPop() { document.querySelectorAll('.cardpop').forEach(p => p.remove()); }
+function showCardPop(e, anchor, lanes, onEdit) {
+  closeCardPop();
+  const lane = (lanes || []).find(l => l.id === e.lane_id);
+  const daily = !lane || lane.kind !== '工場';
+  const sp = spanText(e, daily) || (D.md(e.date_from) + (daily ? '' : (fh(e) === th(e) ? HALF[fh(e)] : '')));
+  const pop = document.createElement('div');
+  pop.className = 'cardpop block';
+  pop.innerHTML = `<div class="cp-head"><b>${esc(lane ? lane.name : '')}</b><span>${esc(sp)}</span>` +
+    `<button type="button" class="cp-x" title="閉じる">×</button></div>` +
+    `<div class="${cardClass(e)} cp-card">${cardInner(e, e.date_from, e.date_to, daily)}</div>` +
+    (onEdit ? `<div class="cp-acts"><button type="button" class="cp-edit">${e.source === 'queue' ? '生産順で直す' : '直す'}</button></div>` : '');
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  let x = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
+  let y = r.bottom + 6;
+  if (y + h > window.innerHeight - 8) y = Math.max(8, r.top - h - 6);
+  pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  pop.querySelector('.cp-x').onclick = closeCardPop;
+  if (onEdit) pop.querySelector('.cp-edit').onclick = () => { closeCardPop(); onEdit(); };
+}
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeCardPop(); });
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('.cardpop') && !ev.target.closest('.weeks .card')) closeCardPop();
+}, true);
 
 // 印刷：A4横1枚に収まるよう、週表を縮める（はみ出すときだけ）
 (function () {

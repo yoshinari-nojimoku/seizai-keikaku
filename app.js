@@ -49,7 +49,9 @@ async function load() {
 function draw() {
   const opts = { from: S.from, days: S.days, lanes: Store.lanes, entries: S.entries, holidays: Store.holidays, stops: Store.stopMap(), editable: true, showAll: S.showAll };
   main.innerHTML = `<div class="weeks"><div class="week block">${renderWeekGrid(opts)}</div></div>${renderDayList(opts).replace(/class="dl-day /g, 'class="dl-day block ')}`;
+  fitFactoryRows(main);
 }
+window.addEventListener('resize', () => { if (S.tab === 'sched') fitFactoryRows(main); });
 
 // ---- 手書きカードの窓 ----
 function openEditor(e) {
@@ -141,11 +143,9 @@ function copyCard() {
 }
 
 // ---- 予定表の操作 ----
-main.addEventListener('click', ev => {
-  const card = ev.target.closest('.card[data-id]');
-  if (card) {
-    const e = S.entries.find(x => String(x.id) === card.dataset.id);
-    if (!e) return;
+// カードを開く（直す）。週表ではまずポップアップで全文を見せ、「直す」で開く
+function openCard(e) {
+  {
     // 生産順から作ったバー → 生産順の画面でそのカードを開く
     if (e.source === 'queue') {
       const qid = (e.source_ref || '').replace('queue:', '');
@@ -155,7 +155,17 @@ main.addEventListener('click', ev => {
       else toast('このバーは済になったカードです（生産順の「済」から戻せます）');
       return;
     }
-    openEditor(e); return;
+    openEditor(e);
+  }
+}
+main.addEventListener('click', ev => {
+  const card = ev.target.closest('.card[data-id]');
+  if (card) {
+    const e = S.entries.find(x => String(x.id) === card.dataset.id);
+    if (!e) return;
+    if (card.closest('.weeks')) showCardPop(e, card, Store.lanes, () => openCard(e));
+    else openCard(e);   // スマホの日ごとの一覧は全文が出ているので、そのまま開く
+    return;
   }
   // 工場の段：押した半日の製材機を止める／戻す → 生産順のバーが並び直る
   const st = ev.target.closest('[data-stop-lane]');
