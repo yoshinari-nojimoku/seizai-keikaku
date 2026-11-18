@@ -7,7 +7,7 @@ const S = {
   showAll: false,
   entries: [],
   edit: null,      // 編集中の手書きカード
-  tab: localStorage.getItem('sk-tab') || 'queue',
+  tab: 'home',   // 開いたらホームから
 };
 
 const $ = id => document.getElementById(id);
@@ -22,14 +22,43 @@ function toast(msg) {
 // ---- タブ ----
 function setTab(t) {
   S.tab = t;
-  try { localStorage.setItem('sk-tab', t); } catch (e) {}
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  $('queue-view').classList.toggle('hide', t !== 'queue');
-  $('sched-view').classList.toggle('hide', t !== 'sched');
+  for (const v of ['home', 'queue', 'sched', 'genboku']) $(v + '-view').classList.toggle('hide', t !== v);
   $('print').classList.toggle('hide', t !== 'sched');
+  if (t === 'home') drawHome();
   if (t === 'sched') load();
+  if (t === 'genboku') gbLoad();
+  window.scrollTo(0, 0);
 }
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+
+// ---- ホーム ----
+// 部屋（機能）の入口。押すと部屋の名前が一瞬アップで出てから、その部屋に入る
+const ROOMS = [
+  { tab: 'queue', name: '生産順', sub: '工場ごとに挽く順を並べる。量から日数を自動で出す', img: () => ILLUST.saw },
+  { tab: 'sched', name: '予定表', sub: '2週の製材・引き取り・原木市。印刷とWORKSへ送る', img: () => ILLUST.hero },
+  { tab: 'genboku', name: '原木仕入れ', sub: '何をどれだけ買うか。更新してWORKSへ送る', img: () => ILLUST.truck },
+];
+function drawHome() {
+  $('home-view').innerHTML = `<div class="home-hello dg">製材計画アプリ</div>` +
+    `<div class="home-grid">${ROOMS.map(r => `<button class="room block" data-room="${r.tab}">` +
+      `<span class="room-img" style="background-image:url('${r.img()}')"></span>` +
+      `<span class="room-name dg">${r.name}</span><span class="room-sub">${r.sub}</span></button>`).join('')}</div>`;
+}
+function enterRoom(tab) {
+  const r = ROOMS.find(x => x.tab === tab);
+  const z = $('zoomtitle');
+  z.textContent = r ? r.name : '';
+  z.classList.remove('hide', 'go');
+  void z.offsetWidth;   // アニメーションをはじめからやり直す
+  z.classList.add('go');
+  setTimeout(() => setTab(tab), 380);
+  setTimeout(() => { z.classList.add('hide'); z.classList.remove('go'); }, 900);
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-room]');
+  if (b) enterRoom(b.dataset.room);
+});
 // 生産順を直したら、予定表も読み直す（開いているときだけ）
 function onQueueSynced() { if (S.tab === 'sched') load(); }
 

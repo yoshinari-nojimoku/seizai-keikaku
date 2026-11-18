@@ -471,3 +471,58 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
 /* 送る2週の1枚（2026-11-18） */
 .sheet.one .g-cell.frow { min-height: 220px; }
 .shot .card { border-width: 2px; }
+
+/* ホーム（2026-11-18） */
+.home-hello { color: var(--cream); font-size: 30px; margin: 10px 4px 16px; letter-spacing: 2px; }
+.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.room { display: flex; flex-direction: column; align-items: stretch; text-align: left; padding: 14px; cursor: pointer; border: 0;
+  transition: transform .15s ease, box-shadow .15s ease; font: inherit; color: var(--burn); }
+.room:hover { transform: translateY(-3px); }
+.room:active { transform: translateY(2px); }
+.room-img { display: block; height: 210px; border-radius: 12px; border: 2px solid var(--line); background-color: #fff;
+  background-size: cover; background-position: center; }
+.room-name { font-size: 30px; color: var(--ink); margin: 12px 4px 2px; }
+.room-sub { font-size: 14px; font-weight: 700; color: var(--burn2); margin: 0 4px 4px; line-height: 1.5; }
+
+/* 部屋に入るときに名前が一瞬アップで出る */
+#zoomtitle { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; pointer-events: none;
+  font-family: 'Dela Gothic One', sans-serif; font-size: min(13vw, 170px); white-space: nowrap; color: var(--cream); letter-spacing: .08em;
+  text-shadow: 0 6px 0 rgba(0,0,0,.35); background: rgba(74,46,26,.0); }
+#zoomtitle.go { animation: zoomin .9s ease-out forwards; }
+@keyframes zoomin {
+  0%   { opacity: 0; transform: scale(.4); background: rgba(74,46,26,0); }
+  30%  { opacity: 1; transform: scale(1.05); background: rgba(74,46,26,.85); }
+  60%  { opacity: 1; transform: scale(1.12); background: rgba(74,46,26,.85); }
+  100% { opacity: 0; transform: scale(1.6); background: rgba(74,46,26,0); }
+}
+
+/* 原木仕入れ */
+.gb-head { display: grid; grid-template-columns: 220px 1fr auto; gap: 18px; align-items: center; padding: 16px; margin-bottom: 16px; }
+.gb-ill { width: 220px; height: 160px; object-fit: cover; border-radius: 12px; border: 2px solid var(--line); background: #fff; }
+.gb-title { font-size: 30px; color: var(--ink); }
+.gb-big { display: flex; align-items: baseline; gap: 8px; margin: 4px 0; color: var(--burn); font-weight: 800; }
+.gb-big b { font-size: 54px; color: var(--maroon); line-height: 1; }
+.gb-big small { font-size: 18px; margin-left: 8px; }
+.gb-meta { font-size: 13px; font-weight: 700; color: var(--burn2); line-height: 1.6; }
+.gb-acts { display: flex; flex-direction: column; gap: 10px; min-width: 260px; }
+.gb-chk { font-size: 13px; font-weight: 800; color: var(--burn2); }
+.gb-body { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; align-items: start; }
+.gb-group { background: var(--paper); border: 2px solid var(--burn); border-radius: 12px; overflow: hidden; }
+.gb-gh { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--head); border-bottom: 2px solid var(--burn); }
+.gb-group.h .gb-gh { background: var(--hinoki-soft); } .gb-group.sg .gb-gh { background: var(--sugi-soft); }
+.gb-gh .c-sp { font-family: 'Dela Gothic One', sans-serif; font-size: 28px; color: var(--ink); }
+.gb-gh b { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 24px; color: var(--ink); }
+.gb-gsum { margin-left: auto; font-weight: 800; color: var(--maroon); }
+.gb-t { width: 100%; border-collapse: collapse; font-size: 16px; }
+.gb-t th { font-size: 12px; color: var(--burn2); font-weight: 800; padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+.gb-t th:first-child, .gb-t td.dia { text-align: left; }
+.gb-t td { padding: 5px 8px; text-align: right; font-weight: 700; color: var(--ink); border-bottom: 1px dashed rgba(74,46,26,.15); }
+.gb-t td.dia { font-weight: 800; }
+.gb-t tr.short td.d { color: var(--maroon); font-weight: 800; font-size: 18px; }
+.gb-t tr.short { background: rgba(142,47,37,.06); }
+.gb-t tr.over td.d { color: var(--burn2); }
+.gb-t td.p { color: var(--burn2); font-size: 14px; }
+.gb-none { color: var(--cream); font-weight: 800; padding: 20px; }
+.gb-sheet .gb-body { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gb-sheet .gb-t { font-size: 20px; }
+@media (max-width: 900px) { .gb-head { grid-template-columns: 1fr; } .gb-ill { width: 100%; } }

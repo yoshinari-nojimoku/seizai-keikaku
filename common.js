@@ -32,6 +32,8 @@ const ILLUST = {
   hero: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213302-75c674ad2951f18be77b813b6ff1d998-1.jpg',
   taiko: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213340-f761d4e24f2cec4dc630d371f2d47f0b-1.jpg',
   kozai: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213406-1c3662ce39770c1a612545aae8e57371-1.jpg',
+  saw: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-231555-b20bf7a31f32ab20fa2cbc59292ed821-1.jpg',
+  truck: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-231652-76574da1b7ff43ca8bfa96a715c3cf44-2.jpg',
   logs: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213434-f1c3e098bab459567c4e5f345f30bdff-1.jpg',
 };
 
