@@ -1,0 +1,145 @@
+/* 製材計画アプリ（専務用・閲覧用 共通） */
+:root {
+  --teal: #4C8288; --teal-deep: #3A656A; --teal-soft: #E7EFF0;
+  --green: #3D7753; --red: #953525; --red-soft: #F3E3E0;
+  --yellow: #C6B659; --yellow-soft: #F5F1DF;
+  --paper: #FAF8F4; --white: #FFFFFF; --text: #3D3939;
+  --g100: #EAE8E3; --g200: #D8D5CD; --g400: #A8A49A; --g600: #6E6A62;
+  --hinoki: #ECA3BD; --hinoki-soft: #FBEAF0;   /* 樹種の色：桧＝ピンク */
+  --sugi: #A6DCF5;   --sugi-soft: #E6F5FC;     /* 樹種の色：杉＝水色 */
+  --off: #F1E6E3;  --sat: #EEF3F4;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--paper); color: var(--text);
+  font-family: "Noto Sans JP", "Hiragino Sans", "Meiryo", sans-serif; font-size: 14px; }
+button { font: inherit; cursor: pointer; }
+
+/* 上の帯 */
+.bar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 16px; background: var(--white); border-bottom: 1px solid var(--g100); }
+.bar h1 { margin: 0 12px 0 0; font-size: 18px; font-weight: 700; color: var(--teal-deep); letter-spacing: .04em; }
+.bar .blocks { display: inline-flex; gap: 3px; margin-right: 8px; }
+.bar .blocks i { width: 14px; height: 6px; border-radius: 2px; display: block; }
+.bar .spacer { flex: 1; }
+.btn { border: 1px solid var(--g200); background: var(--white); color: var(--text); border-radius: 8px; padding: 6px 12px; }
+.btn:hover { border-color: var(--teal); }
+.btn.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.btn.danger { color: var(--red); border-color: var(--red-soft); }
+.btn.on { background: var(--teal-soft); border-color: var(--teal); color: var(--teal-deep); }
+.range { font-weight: 700; min-width: 9em; text-align: center; }
+.who { font-size: 12px; color: var(--g600); }
+
+main { padding: 16px; }
+.msg { max-width: 560px; margin: 60px auto; background: var(--white); border-radius: 16px; padding: 32px; text-align: center;
+  box-shadow: 0 4px 12px rgba(61,57,57,.06); line-height: 1.8; }
+.msg input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid var(--g200); border-radius: 8px; margin: 12px 0; }
+
+/* 週表 */
+.week { margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 112px repeat(var(--days), minmax(0, 1fr)); grid-auto-rows: minmax(34px, auto);
+  background: var(--white); border: 1px solid var(--g200); border-radius: 10px; overflow: hidden; }
+.g-corner { grid-row: 1; grid-column: 1; background: var(--teal-soft); color: var(--teal-deep); font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; border-bottom: 2px solid var(--teal); }
+.g-day { grid-row: 1; text-align: center; padding: 4px 2px; font-weight: 700; border-bottom: 2px solid var(--teal);
+  border-left: 1px solid var(--g100); background: var(--teal-soft); line-height: 1.2; }
+.g-day small { display: block; font-weight: 400; font-size: 11px; }
+.g-day.off { background: var(--off); color: var(--red); }
+.g-day.sat { color: var(--teal-deep); }
+.g-day.today { box-shadow: inset 0 -4px 0 var(--yellow); }
+.g-lane { grid-column: 1; padding: 6px 8px; font-weight: 700; font-size: 13px; border-top: 1px solid var(--g200);
+  background: var(--paper); display: flex; align-items: center; }
+.g-lane.k-工場 { background: var(--teal-soft); color: var(--teal-deep); font-size: 16px; }
+.g-lane.k-外注 { color: var(--green); }
+.g-lane.k-メモ, .g-lane.k-原木市 { color: var(--g600); }
+.g-cell { border-left: 1px solid var(--g100); border-top: 1px dashed transparent; min-height: 34px; }
+.g-cell.off { background: var(--off); }
+.g-cell.sat { background: var(--sat); }
+.g-cell[data-lane]:hover { background: var(--yellow-soft); cursor: copy; }
+.g-cell.last { border-bottom: 1px solid var(--g200); }
+
+/* カード */
+.card { margin: 3px; padding: 5px 7px; border-radius: 6px; background: var(--white); border: 1px solid var(--g200);
+  border-left: 5px solid var(--g400); font-size: 12px; line-height: 1.45; position: relative; z-index: 1; min-width: 0;
+  overflow-wrap: anywhere; }
+.card.hinoki { border-left-color: var(--hinoki); background: var(--hinoki-soft); }
+.card.sugi { border-left-color: var(--sugi); background: var(--sugi-soft); }
+.card.hl { outline: 2px solid var(--yellow); background: var(--yellow-soft); }
+.card.done { opacity: .55; }
+.card.cancel .c-body { text-decoration: line-through; color: var(--g600); }
+.card[data-id] { cursor: pointer; }
+.c-span { display: inline-block; font-size: 10px; color: var(--g600); margin-right: 4px; }
+.c-st { display: inline-block; font-size: 10px; font-weight: 700; color: #fff; background: var(--g600); border-radius: 4px; padding: 0 4px; margin-right: 4px; }
+.card.cancel .c-st { background: var(--red); }
+.c-cut { position: absolute; left: -2px; top: 2px; font-size: 9px; color: var(--g400); }
+.c-cut.r { left: auto; right: 2px; }
+
+/* スマホ：日ごとの一覧 */
+.daylist { display: none; }
+.dl-day { background: var(--white); border-radius: 12px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--g100); }
+.dl-day h3 { margin: 0 0 6px; font-size: 16px; display: flex; align-items: center; gap: 6px; }
+.dl-day h3 small { font-weight: 400; color: var(--g600); }
+.dl-day.off h3 { color: var(--red); }
+.dl-day.today { border: 2px solid var(--yellow); }
+.dl-add { margin-left: auto; border: 1px solid var(--teal); color: var(--teal); background: var(--white); border-radius: 50%;
+  width: 30px; height: 30px; font-size: 18px; line-height: 1; }
+.dl-lane { font-size: 12px; font-weight: 700; color: var(--teal-deep); margin: 8px 0 2px; }
+.dl-lane.k-外注 { color: var(--green); }
+.dl-none { color: var(--g400); margin: 4px 0; font-size: 13px; }
+.dl-day .card { margin: 3px 0; font-size: 14px; }
+
+@media (max-width: 760px) {
+  main { padding: 10px; }
+  .weeks { display: none; }
+  .daylist { display: block; }
+  .bar h1 { font-size: 16px; }
+}
+
+/* 編集の窓 */
+dialog { border: none; border-radius: 16px; padding: 0; width: min(760px, 96vw); box-shadow: 0 12px 28px rgba(61,57,57,.2); }
+dialog::backdrop { background: rgba(61,57,57,.35); }
+.dlg { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.dlg-main { padding: 20px; border-right: 1px solid var(--g100); }
+.dlg-past { padding: 20px; background: var(--paper); max-height: 70vh; overflow: auto; }
+.dlg h2 { margin: 0 0 12px; font-size: 17px; color: var(--teal-deep); }
+.dlg label { display: block; font-size: 12px; color: var(--g600); margin: 10px 0 4px; }
+.dlg select, .dlg input[type=date], .dlg input[type=search], .dlg textarea { width: 100%; padding: 8px; font-size: 15px;
+  border: 1px solid var(--g200); border-radius: 8px; font-family: inherit; background: var(--white); }
+.dlg textarea { min-height: 150px; line-height: 1.6; }
+.dlg .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dlg .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.dlg .acts { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.dlg .acts .spacer { flex: 1; }
+.past-item { background: var(--white); border: 1px solid var(--g100); border-radius: 8px; padding: 8px; margin-top: 8px; font-size: 12px;
+  line-height: 1.5; cursor: pointer; }
+.past-item:hover { border-color: var(--teal); }
+.past-item b { color: var(--teal-deep); font-size: 11px; display: block; }
+.hint { font-size: 12px; color: var(--g600); }
+@media (max-width: 760px) {
+  .dlg { grid-template-columns: 1fr; }
+  .dlg-main { border-right: none; }
+  .dlg-past { max-height: 40vh; }
+}
+
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff;
+  padding: 8px 16px; border-radius: 8px; z-index: 50; font-size: 13px; }
+
+/* 印刷：A4横・1週＝1枚。スマホからでも週表で出す */
+@media print {
+  @page { size: A4 landscape; margin: 7mm; }
+  html, body { background: #fff; font-size: 9pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bar, .noprint, dialog, .toast { display: none !important; }
+  main { padding: 0; }
+  .weeks { display: block !important; }
+  .daylist { display: none !important; }
+  .week { page-break-after: always; break-after: page; margin: 0; }
+  .week:last-child { page-break-after: auto; break-after: auto; }
+  .print-head { display: flex !important; justify-content: space-between; font-size: 9pt; margin-bottom: 2mm; }
+  .grid { border-radius: 0; grid-template-columns: 24mm repeat(var(--days), minmax(0, 1fr)); grid-auto-rows: minmax(0, auto); }
+  .g-cell { min-height: 5mm; }
+  .g-lane.empty, .g-cell.empty, .g-cell.spare { display: none; }   /* 空の段と、足す用の空き行は印刷しない */
+  .g-day { padding: .8mm 0; }
+  .card { font-size: 7pt; padding: .7mm 1.2mm; margin: .5mm; line-height: 1.25; border-left-width: 3px; }
+  .g-lane { font-size: 8pt; padding: 1mm 1.5mm; }
+  .g-lane.k-工場 { font-size: 10.5pt; }
+}
+.print-head { display: none; }

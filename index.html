@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>製材計画</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=1">
+</head>
+<body>
+<header class="bar">
+  <span class="blocks"><i style="background:var(--teal)"></i><i style="background:var(--green)"></i><i style="background:var(--red)"></i><i style="background:var(--yellow)"></i></span>
+  <h1>製材計画</h1>
+  <button class="btn" id="prev" title="前の週">◀</button>
+  <span class="range" id="range"></span>
+  <button class="btn" id="next" title="次の週">▶</button>
+  <button class="btn" id="today">今週</button>
+  <button class="btn" id="w1">1週</button>
+  <button class="btn" id="w2">2週</button>
+  <span class="spacer"></span>
+  <button class="btn" id="showall" title="使っていない段も出す">全部の段</button>
+  <button class="btn" id="print">印刷</button>
+  <span class="who" id="who"></span>
+</header>
+<main id="main"><div class="msg">読み込み中…</div></main>
+
+<dialog id="dlg">
+  <form method="dialog" class="dlg" id="form">
+    <div class="dlg-main">
+      <h2 id="dlg-title">計画カード</h2>
+      <label>段</label>
+      <select id="f-lane"></select>
+      <div class="row2">
+        <div><label>始まり</label><input type="date" id="f-from" required></div>
+        <div><label>終わり</label><input type="date" id="f-to" required></div>
+      </div>
+      <label>中身（自由に書いてOK。あとでAIが形にします）</label>
+      <textarea id="f-body" placeholder="例）桧4M 20・22㎝ 500本&#10;節 19㎜／ム・上 16㎜"></textarea>
+      <label>状態</label>
+      <div class="seg" id="f-status">
+        <button type="button" class="btn" data-v="予定">予定</button>
+        <button type="button" class="btn" data-v="済">済</button>
+        <button type="button" class="btn" data-v="中止">中止</button>
+        <button type="button" class="btn" id="f-hl" title="黄色で目立たせる">★目立たせる</button>
+      </div>
+      <div class="acts">
+        <button type="button" class="btn primary" id="f-save">保存</button>
+        <button type="button" class="btn" id="f-copy" title="同じ中身で別のカードを作る">複製</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn danger" id="f-del">削除</button>
+        <button type="button" class="btn" id="f-close">閉じる</button>
+      </div>
+      <p class="hint" id="f-meta"></p>
+    </div>
+    <div class="dlg-past">
+      <h2>過去から呼び出す</h2>
+      <input type="search" id="p-q" placeholder="例）桧4M、WP 30">
+      <p class="hint">押すと、その中身を左に写します（日付と段はそのまま）。</p>
+      <div id="p-list"></div>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js?v=1"></script>
+<script src="common.js?v=1"></script>
+<script src="store.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>

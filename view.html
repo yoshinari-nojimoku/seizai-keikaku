@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>製材計画（閲覧）</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=1">
+</head>
+<body>
+<header class="bar">
+  <span class="blocks"><i style="background:var(--teal)"></i><i style="background:var(--green)"></i><i style="background:var(--red)"></i><i style="background:var(--yellow)"></i></span>
+  <h1>製材計画</h1>
+  <button class="btn" id="prev">◀</button>
+  <span class="range" id="range"></span>
+  <button class="btn" id="next">▶</button>
+  <button class="btn" id="today">今週</button>
+  <span class="spacer"></span>
+  <button class="btn primary" id="print">印刷</button>
+  <span class="who" id="upd"></span>
+</header>
+<main id="main"><div class="msg">読み込み中…</div></main>
+
+<script src="config.js?v=1"></script>
+<script src="common.js?v=1"></script>
+<script src="view.js?v=1"></script>
+</body>
+</html>
