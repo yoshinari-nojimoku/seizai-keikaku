@@ -36,9 +36,11 @@
   <!-- 予定表：工場の段は生産順から自動。ほかの段は手で書く -->
   <section id="sched-view" class="hide">
     <div class="subbar">
-      <button class="btn" id="prev" title="前の週">◀</button>
+      <button class="btn" id="prevw" title="1週もどる">◀◀</button>
+      <button class="btn" id="prev" title="1日もどる">◀</button>
       <span class="range" id="range"></span>
-      <button class="btn" id="next" title="次の週">▶</button>
+      <button class="btn" id="next" title="1日すすむ">▶</button>
+      <button class="btn" id="nextw" title="1週すすむ">▶▶</button>
       <button class="btn" id="today">今週</button>
       <button class="btn" id="w1">1週</button>
       <button class="btn" id="w2">2週</button>
@@ -89,7 +91,7 @@
 <script src="config.js?v=1"></script>
 <script src="common.js?v=10"></script>
 <script src="store.js?v=4"></script>
-<script src="queue.js?v=5"></script>
-<script src="app.js?v=6"></script>
+<script src="queue.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

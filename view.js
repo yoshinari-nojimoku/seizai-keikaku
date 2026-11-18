@@ -46,8 +46,11 @@ async function load() {
   main.innerHTML = `<div class="weeks">${weeks}</div>${renderDayList(opts).replace(/class="dl-day /g, 'class="dl-day block ')}`;
 }
 
-$('prev').onclick = () => { V.from = D.add(V.from, -7); load(); };
-$('next').onclick = () => { V.from = D.add(V.from, 7); load(); };
+// ◀ ▶＝1日ずつ／◀◀ ▶▶＝1週ずつ
+$('prev').onclick = () => { V.from = D.add(V.from, -1); load(); };
+$('next').onclick = () => { V.from = D.add(V.from, 1); load(); };
+$('prevw').onclick = () => { V.from = D.add(V.from, -7); load(); };
+$('nextw').onclick = () => { V.from = D.add(V.from, 7); load(); };
 $('today').onclick = () => { V.from = D.monday(D.today()); load(); };
 $('print').onclick = () => window.print();
 

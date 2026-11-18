@@ -138,6 +138,20 @@ function qFormDraw() {
   qPastDraw();
 }
 
+// 等級の厚さを入れたら、決まった木取りのメモを自動で書く（2026-11-18 専務）
+// 特一等110㎜＝DLT材（端柄材）→「110㎜×52㎜　3丁取り」
+const AUTO_MEMO = { '特一等': { 110: '110㎜×52㎜　3丁取り' } };
+function autoMemo(grade, mm) {
+  const rules = AUTO_MEMO[grade];
+  if (!rules || !Q.form) return;
+  let lines = (Q.form.memo || '').split(/\r?\n/).filter(l => l.trim() !== '');
+  lines = lines.filter(l => !Object.values(rules).includes(l.trim()));   // 前に自動で書いたものは消す
+  if (rules[mm]) lines.push(rules[mm]);
+  Q.form.memo = lines.join('\n');
+  const box = qs('#qform [data-in="memo"]');
+  if (box) box.value = Q.form.memo;
+}
+
 // ---- タイコ後木取り ----
 const TAIKO = [210, 175, 145, 140, 130, 125];
 // この径でよく挽く構造材（過去の記録から。無ければ目安の表）
@@ -353,7 +367,10 @@ document.addEventListener('input', ev => {
     const k = Q.form.kidori = { ...(Q.form.kidori || {}) };
     const key = kin.dataset.kin, val = kin.value.normalize('NFKC').trim();
     if (key === 'taiko') k.taiko = val ? Number(val) : null;
-    if (key.startsWith('grade:')) k.grades = { ...(k.grades || {}), [key.slice(6)]: val ? Number(val) : null };
+    if (key.startsWith('grade:')) {
+      k.grades = { ...(k.grades || {}), [key.slice(6)]: val ? Number(val) : null };
+      autoMemo(key.slice(6), val ? Number(val) : null);
+    }
     return;
   }
   const el = ev.target.closest('#qform [data-in]');

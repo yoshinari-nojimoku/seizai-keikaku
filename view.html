@@ -12,9 +12,11 @@
 <body>
 <header class="bar">
   <span class="stamp"><span class="t dg">製材計画</span><span class="s">nojimoku 2工場</span></span>
-  <button class="btn" id="prev">◀</button>
+  <button class="btn" id="prevw" title="1週もどる">◀◀</button>
+  <button class="btn" id="prev" title="1日もどる">◀</button>
   <span class="range" id="range"></span>
-  <button class="btn" id="next">▶</button>
+  <button class="btn" id="next" title="1日すすむ">▶</button>
+  <button class="btn" id="nextw" title="1週すすむ">▶▶</button>
   <button class="btn" id="today">今週</button>
   <span class="spacer"></span>
   <button class="btn primary" id="print">印刷</button>
@@ -24,6 +26,6 @@
 
 <script src="config.js?v=1"></script>
 <script src="common.js?v=10"></script>
-<script src="view.js?v=4"></script>
+<script src="view.js?v=5"></script>
 </body>
 </html>

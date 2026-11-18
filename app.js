@@ -180,8 +180,11 @@ main.addEventListener('click', ev => {
   }
 });
 
-$('prev').onclick = () => { S.from = D.add(S.from, -7); load(); };
-$('next').onclick = () => { S.from = D.add(S.from, 7); load(); };
+// ◀ ▶＝1日ずつ（金曜に翌週を組むので、金曜から見られるように）／◀◀ ▶▶＝1週ずつ
+$('prev').onclick = () => { S.from = D.add(S.from, -1); load(); };
+$('next').onclick = () => { S.from = D.add(S.from, 1); load(); };
+$('prevw').onclick = () => { S.from = D.add(S.from, -7); load(); };
+$('nextw').onclick = () => { S.from = D.add(S.from, 7); load(); };
 $('today').onclick = () => { S.from = D.monday(D.today()); load(); };
 $('w1').onclick = () => { S.days = 7; localStorage.setItem('sk-days', 7); load(); };
 $('w2').onclick = () => { S.days = 14; localStorage.setItem('sk-days', 14); load(); };
