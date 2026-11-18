@@ -243,7 +243,7 @@ function diaText(it) {
   if (it.dia_from === it.dia_to) return `${it.dia_from}㎝`;
   return `${it.dia_from}-${it.dia_to}㎝`;
 }
-const qtyText = it => (it.qty ? `${+it.qty}${it.unit === '㎥' ? '㎥' : '本'}` : '');
+const qtyText = it => (it.unit === '未定' ? '量未定' : it.qty ? `${+it.qty}${it.unit === '㎥' ? '㎥' : '本'}` : '');
 // 生産順カードの見出し（予定表のバーの1行目にもなる）
 function queueTitle(it) {
   if (it.kind === '止め') return it.memo.split(/\r?\n/)[0] || '止め';
@@ -288,6 +288,7 @@ function findSpeed(speed, factory, it) {
 function estimateHalves(it, factory, speed) {
   if (it.halves_manual) return { halves: it.halves_manual, manual: true };
   if (it.kind === '止め') return { halves: 2, manual: false };
+  if (it.unit === '未定') return { halves: 1, manual: false, undecided: true };   // 量が未定 → 1マス（半日）
   const s = findSpeed(speed, factory, it);
   if (!s || !it.qty) return { halves: 2, manual: false, speed: s };
   const perDay = it.unit === '㎥' ? Number(s.m3_day) : Number(s.per_day);

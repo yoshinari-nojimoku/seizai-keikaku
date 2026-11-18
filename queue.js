@@ -116,8 +116,8 @@ function qFormDraw() {
     h += `<div class="lbl">直径（末口㎝）　上だけなら右を空に</div><div class="row">` +
       `<input class="num" inputmode="numeric" data-in="dia_from" value="${f.dia_from ?? ''}" placeholder="20"><span class="unit">〜</span>` +
       `<input class="num" inputmode="numeric" data-in="dia_to" value="${f.dia_to ?? ''}" placeholder="22"><span class="unit">㎝</span></div>`;
-    h += `<div class="lbl">量</div><div class="row"><input class="num" inputmode="decimal" data-in="qty" value="${f.qty ?? ''}" placeholder="500">` +
-      `<div class="seg" style="flex:0 0 auto">${['本', '㎥'].map(u => `<button type="button" class="chip sm${f.unit === u ? ' on' : ''}" data-set="unit" data-v="${u}">${u}</button>`).join('')}</div></div>`;
+    h += `<div class="lbl">量</div><div class="row"><input class="num" inputmode="decimal" data-in="qty" value="${f.unit === '未定' ? '' : f.qty ?? ''}" placeholder="${f.unit === '未定' ? '未定' : '500'}"${f.unit === '未定' ? ' disabled' : ''}>` +
+      `<div class="seg" style="flex:0 0 auto">${['本', '㎥', '未定'].map(u => `<button type="button" class="chip sm${f.unit === u ? ' on' : ''}" data-set="unit" data-v="${u}">${u}</button>`).join('')}</div></div>`;
     h += kidoriFormHtml(f);
     h += `<div class="lbl">メモ（自由に）</div><textarea class="txt" data-in="memo" placeholder="例）125バチ　節19㎜／ム・上16㎜">${esc(f.memo)}</textarea>`;
     h += `<div class="past" id="qpast"></div>`;
@@ -199,6 +199,7 @@ function qEst() {
   let why;
   if (r.manual) why = '手で決めた長さです';
   else if (f.kind === '止め') why = '止めの長さ';
+  else if (f.unit === '未定') why = '量が未定なので、予定表では1マス（半日）にしておきます';
   else if (!f.qty) why = '量を入れると、過去の記録から日数を出します（今は仮に1日）';
   else if (r.speed && r.perDay) why = `${esc(r.speed.level)}は<br>過去の記録で 約${Math.round(r.perDay * 10) / 10}${f.unit === '㎥' ? '㎥' : '本'}/日`;
   else why = '記録が見つからないので仮に1日';
@@ -327,7 +328,8 @@ document.addEventListener('click', ev => {
       qFormDraw(); qLoadPast(); return;
     }
     Q.form[k] = k === 'lane_id' || k === 'length_m' || k === 'halves_manual' ? Number(v) : v;
-    if (k === 'lane_id' || k === 'length_m') { qFormDraw(); qLoadPast(); return; }
+    if (k === 'unit' && v === '未定') Q.form.qty = null;
+    if (k === 'lane_id' || k === 'length_m' || k === 'unit') { qFormDraw(); if (k !== 'unit') qLoadPast(); return; }
     qs('#qform').querySelectorAll(`[data-set="${k}"]`).forEach(b => b.classList.toggle('on', b.dataset.v === v));
     qEst(); return;
   }
