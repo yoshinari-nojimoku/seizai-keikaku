@@ -6,28 +6,50 @@
 <title>製材計画</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=2">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=3">
 </head>
 <body>
 <header class="bar">
-  <span class="blocks"><i style="background:var(--teal)"></i><i style="background:var(--green)"></i><i style="background:var(--red)"></i><i style="background:var(--yellow)"></i></span>
-  <h1>製材計画</h1>
-  <button class="btn" id="prev" title="前の週">◀</button>
-  <span class="range" id="range"></span>
-  <button class="btn" id="next" title="次の週">▶</button>
-  <button class="btn" id="today">今週</button>
-  <button class="btn" id="w1">1週</button>
-  <button class="btn" id="w2">2週</button>
+  <span class="stamp"><span class="t dg">製材計画</span><span class="s">nojimoku 2工場</span></span>
+  <div class="tabs">
+    <button class="tab" data-tab="queue">生産順</button>
+    <button class="tab" data-tab="sched">予定表</button>
+  </div>
   <span class="spacer"></span>
-  <button class="btn" id="showall" title="使っていない段も出す">全部の段</button>
   <button class="btn" id="print">印刷</button>
   <span class="who" id="who"></span>
 </header>
-<main id="main"><div class="msg">読み込み中…</div></main>
+
+<main>
+  <div id="gate"><div class="block msg">読み込み中…</div></div>
+
+  <!-- 生産順：工場ごとのやることリスト＋製材を足す画面 -->
+  <section id="queue-view" class="hide">
+    <div class="qwrap noform" id="qwrap">
+      <div class="block qcol" id="qcol-a"></div>
+      <div class="block qcol" id="qcol-b"></div>
+      <div class="block form hide" id="qform"></div>
+    </div>
+  </section>
+
+  <!-- 予定表：工場の段は生産順から自動。ほかの段は手で書く -->
+  <section id="sched-view" class="hide">
+    <div class="subbar">
+      <button class="btn" id="prev" title="前の週">◀</button>
+      <span class="range" id="range"></span>
+      <button class="btn" id="next" title="次の週">▶</button>
+      <button class="btn" id="today">今週</button>
+      <button class="btn" id="w1">1週</button>
+      <button class="btn" id="w2">2週</button>
+      <button class="btn" id="showall" title="使っていない段も出す">全部の段</button>
+    </div>
+    <div id="main"></div>
+  </section>
+</main>
 
 <dialog id="dlg">
-  <form method="dialog" class="dlg" id="form">
+  <form method="dialog" class="dlg block" id="form">
     <div class="dlg-main">
       <h2 id="dlg-title">計画カード</h2>
       <label>段</label>
@@ -36,21 +58,21 @@
         <div><label>始まり</label><div class="dh"><input type="date" id="f-from" required><select id="f-fromh"><option value="0">午前</option><option value="1">午後</option></select></div></div>
         <div><label>終わり</label><div class="dh"><input type="date" id="f-to" required><select id="f-toh"><option value="0">午前</option><option value="1">午後</option></select></div></div>
       </div>
-      <label>中身（自由に書いてOK。あとでAIが形にします）</label>
-      <textarea id="f-body" placeholder="例）桧4M 20・22㎝ 500本&#10;節 19㎜／ム・上 16㎜"></textarea>
+      <label>中身（自由に書いてOK）</label>
+      <textarea id="f-body" placeholder="例）杉4M 28-32㎝ 桜井木材&#10;紀南運輸 トレーラ"></textarea>
       <label>状態</label>
       <div class="seg" id="f-status">
-        <button type="button" class="btn" data-v="予定">予定</button>
-        <button type="button" class="btn" data-v="済">済</button>
-        <button type="button" class="btn" data-v="中止">中止</button>
-        <button type="button" class="btn" id="f-hl" title="黄色で目立たせる">★目立たせる</button>
+        <button type="button" class="dbtn" data-v="予定">予定</button>
+        <button type="button" class="dbtn" data-v="済">済</button>
+        <button type="button" class="dbtn" data-v="中止">中止</button>
+        <button type="button" class="dbtn" id="f-hl" title="金色の枠で目立たせる">★目立たせる</button>
       </div>
       <div class="acts">
-        <button type="button" class="btn primary" id="f-save">保存</button>
-        <button type="button" class="btn" id="f-copy" title="同じ中身で別のカードを作る">複製</button>
+        <button type="button" class="dbtn primary" id="f-save">保存</button>
+        <button type="button" class="dbtn" id="f-copy" title="同じ中身で別のカードを作る">複製</button>
         <span class="spacer"></span>
-        <button type="button" class="btn danger" id="f-del">削除</button>
-        <button type="button" class="btn" id="f-close">閉じる</button>
+        <button type="button" class="dbtn danger" id="f-del">削除</button>
+        <button type="button" class="dbtn" id="f-close">閉じる</button>
       </div>
       <p class="hint" id="f-meta"></p>
     </div>
@@ -65,8 +87,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js?v=1"></script>
-<script src="common.js?v=2"></script>
-<script src="store.js?v=2"></script>
-<script src="app.js?v=3"></script>
+<script src="common.js?v=3"></script>
+<script src="store.js?v=3"></script>
+<script src="queue.js?v=1"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

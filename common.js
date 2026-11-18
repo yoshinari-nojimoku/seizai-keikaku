@@ -69,16 +69,18 @@ function cardInner(e, rangeFrom, rangeTo) {
   const cutL = e.date_from < rangeFrom, cutR = e.date_to > rangeTo;
   const sp = spanText(e), span = sp ? `<span class="c-span">${sp}</span>` : '';
   const st = e.status !== '予定' ? `<span class="c-st">${esc(e.status)}</span>` : '';
-  return `${cutL ? '<span class="c-cut">◀</span>' : ''}${st}${span}<div class="c-body">${esc(e.body).replace(/\n/g, '<br>')}</div>${cutR ? '<span class="c-cut r">▶</span>' : ''}`;
+  const auto = e.source === 'queue' ? '<span class="c-auto">自動</span>' : '';
+  return `${cutL ? '<span class="c-cut">◀</span>' : ''}${auto}${st}${span}<div class="c-body">${esc(e.body).replace(/\n/g, '<br>')}</div>${cutR ? '<span class="c-cut r">▶</span>' : ''}`;
 }
 
 function cardClass(e) {
-  return ['card', speciesOf(e.body), e.status === '済' ? 'done' : '', e.status === '中止' ? 'cancel' : '', e.color ? 'hl' : ''].join(' ');
+  const stop = e.source === 'queue' && !speciesOf(e.body) ? 'stop' : '';
+  return ['card', speciesOf(e.body), stop, e.status === '済' ? 'done' : '', e.status === '中止' ? 'cancel' : '', e.color ? 'hl' : ''].join(' ');
 }
 
 // 週表（段×日）。1日を午前・午後の2マスに分ける。何週でも横に1枚でつなげる
 // editable なら空いたマスを押してカードを足せる
-function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, editable = false, showAll = false }) {
+function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, stops = {}, editable = false, showAll = false }) {
   const to = D.add(from, days - 1);
   const inRange = entries.filter(e => e.date_from <= to && e.date_to >= from);
   const ls = visibleLanes(lanes, inRange, showAll);
@@ -95,14 +97,30 @@ function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, editabl
   let row = 3;
   for (const lane of ls) {
     const { cards, tracks } = packTracks(inRange.filter(e => e.lane_id === lane.id));
-    const n = Math.max(1, tracks + (editable ? 1 : 0));
-    const empty = !cards.length && lane.kind !== '工場' ? ' empty' : '';   // 空の段（印刷では省く。工場は空でも残す）
-    html += `<div class="g-lane k-${esc(lane.kind)}${empty}" style="grid-row:${row} / span ${n}">${esc(lane.name)}</div>`;
+    const factory = lane.kind === '工場';
+    // 工場は1段（重なるのは昔のエクセルのカードだけ）。ほかの段は足す用の空き行を1つ
+    const n = Math.max(1, tracks + (editable && !factory ? 1 : 0));
+    const empty = !cards.length && !factory ? ' empty' : '';   // 空の段（印刷では省く。工場は空でも残す）
+    html += `<div class="g-lane k-${esc(lane.kind)}${empty}" style="grid-row:${row} / span ${n + (factory ? 1 : 0)}">${esc(lane.name)}</div>`;
+    if (factory) {
+      // 製材機を止める日の行（押すと止める／もう一度押すと戻す）
+      dayList.forEach((d, i) => {
+        for (let k = 0; k < 2; k++) {
+          const lb = stops[`${lane.id}|${d}|${k}`];
+          html += `<div class="g-stop${lb ? ' on' : ''}${k ? ' pm' : wk(i)}${isOffDay(d, holidays) ? ' off' : ''}" style="grid-row:${row};grid-column:${i * 2 + 2 + k}"` +
+            (editable ? ` data-stop-lane="${lane.id}" data-date="${d}" data-half="${k}" title="${D.md(d)} ${HALF[k]}：${lb ? esc(lb) + '（押すと戻す）' : '押すと製材機を止める'}"` : (lb ? ` title="${esc(lb)}"` : '')) +
+            `>${lb ? (k === 0 || !stops[`${lane.id}|${d}|0`] ? esc(lb.slice(0, 6)) : '') : ''}</div>`;
+        }
+      });
+      row += 1;
+    }
     for (let t = 0; t < n; t++) {
       dayList.forEach((d, i) => {
         for (let k = 0; k < 2; k++) {
-          html += `<div class="g-cell ${dayClass(d, holidays)}${k ? ' pm' : wk(i)}${t === n - 1 ? ' last' : ''}${empty}${editable && t === n - 1 && n > 1 ? ' spare' : ''}" style="grid-row:${row + t};grid-column:${i * 2 + 2 + k}"` +
-            (editable ? ` data-lane="${lane.id}" data-date="${d}" data-half="${k}" title="${D.md(d)} ${HALF[k]}"` : '') + '></div>';
+          const stopped = factory && stops[`${lane.id}|${d}|${k}`] ? ' stopped' : '';
+          html += `<div class="g-cell ${dayClass(d, holidays)}${k ? ' pm' : wk(i)}${t === n - 1 ? ' last' : ''}${empty}${stopped}${editable && !factory && t === n - 1 && n > 1 ? ' spare' : ''}" style="grid-row:${row + t};grid-column:${i * 2 + 2 + k}"` +
+            (editable ? (factory ? ` data-stop-lane="${lane.id}" data-date="${d}" data-half="${k}" title="${D.md(d)} ${HALF[k]}：押すと製材機を止める／戻す"`
+                                 : ` data-lane="${lane.id}" data-date="${d}" data-half="${k}" title="${D.md(d)} ${HALF[k]}"`) : '') + '></div>';
         }
       });
     }
@@ -118,7 +136,7 @@ function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, editabl
 }
 
 // スマホ用：日ごとの一覧
-function renderDayList({ from, days, lanes, entries, holidays = {}, editable = false }) {
+function renderDayList({ from, days, lanes, entries, holidays = {}, stops = {}, editable = false }) {
   const byId = Object.fromEntries(lanes.map(l => [l.id, l]));
   let html = '<div class="daylist">';
   for (let i = 0; i < days; i++) {
@@ -127,6 +145,11 @@ function renderDayList({ from, days, lanes, entries, holidays = {}, editable = f
       .sort((a, b) => (byId[a.lane_id]?.sort ?? 999) - (byId[b.lane_id]?.sort ?? 999) || startKey(a).localeCompare(startKey(b)));
     html += `<section class="dl-day ${dayClass(d, holidays)}"><h3>${D.md(d)}<small>（${D.wd(d)}）${holidays[d] ? esc(holidays[d]) : ''}</small>` +
       (editable ? `<button class="dl-add" data-date="${d}">＋</button>` : '') + '</h3>';
+    const stopNames = lanes.filter(l => l.kind === '工場').map(l => {
+      const a = stops[`${l.id}|${d}|0`], p = stops[`${l.id}|${d}|1`];
+      return a || p ? `${esc(l.name)}：${esc(a || p)}（${a && p ? '1日' : a ? '午前' : '午後'}）` : '';
+    }).filter(Boolean);
+    if (stopNames.length) html += `<p class="dl-stop">■ 製材機を止める　${stopNames.join('　')}</p>`;
     if (!todays.length) html += '<p class="dl-none">予定なし</p>';
     let last = null;
     for (const e of todays) {
@@ -141,7 +164,7 @@ function renderDayList({ from, days, lanes, entries, holidays = {}, editable = f
 
 // 週表を出す（2週でも横に1枚でつなげる。印刷も1枚）
 function renderWeeks(opts) {
-  return `<div class="week">${renderWeekGrid(opts)}</div>`;
+  return `<div class="week block">${renderWeekGrid(opts)}</div>`;
 }
 
 // 印刷：A4横1枚に収まるよう、週表を縮める（はみ出すときだけ）
@@ -165,3 +188,83 @@ function renderWeeks(opts) {
   window.addEventListener('beforeprint', fit);
   window.addEventListener('afterprint', unfit);
 })();
+
+// ===== 生産順 → 予定表のバー =====
+// 半日の枠 {day, half}。日曜・社休日は飛ばす
+const isOffDay = (day, holidays) => D.isSun(day) || !!holidays[day];
+const slotNext = s => (s.half ? { day: D.add(s.day, 1), half: 0 } : { day: s.day, half: 1 });
+// stops＝その工場の止める半日（Set of '日|半日'）
+function slotWork(s, holidays, stops) {
+  let x = { ...s };
+  for (let i = 0; i < 400; i++) {
+    if (isOffDay(x.day, holidays)) x = { day: D.add(x.day, 1), half: 0 };
+    else if (stops && stops.has(`${x.day}|${x.half}`)) x = slotNext(x);
+    else break;
+  }
+  return x;
+}
+const slotKey = s => s.day + s.half;
+const slotText = s => `${D.md(s.day)}${HALF[s.half]}`;
+
+// 径の書き方：24〜26 → 「24-26㎝」、下だけ → 「30㎝↑」、上だけ → 「22㎝↓」
+function diaText(it) {
+  if (!it.dia_from && !it.dia_to) return '';
+  if (it.dia_from && !it.dia_to) return `${it.dia_from}㎝↑`;
+  if (!it.dia_from) return `${it.dia_to}㎝↓`;
+  if (it.dia_from === it.dia_to) return `${it.dia_from}㎝`;
+  return `${it.dia_from}-${it.dia_to}㎝`;
+}
+const qtyText = it => (it.qty ? `${+it.qty}${it.unit === '㎥' ? '㎥' : '本'}` : '');
+// 生産順カードの見出し（予定表のバーの1行目にもなる）
+function queueTitle(it) {
+  if (it.kind === '止め') return it.memo.split(/\r?\n/)[0] || '止め';
+  return [`${it.species || ''}${it.length_m ? +it.length_m + 'M' : ''}`, diaText(it), qtyText(it)].filter(Boolean).join(' ');
+}
+function queueBody(it) {
+  if (it.kind === '止め') return it.memo || '止め';
+  return queueTitle(it) + (it.memo ? '\n' + it.memo : '');
+}
+
+// 挽く速さ（本/日・㎥/日）を探す：工場×樹種×長さ×径級 → 工場×樹種×長さ → 工場×樹種 → 工場
+function findSpeed(speed, factory, it) {
+  const rows = speed.filter(r => r.factory === factory);
+  const sp = it.species || '*', len = Number(it.length_m || 0);
+  const dia = it.dia_from && it.dia_to ? (it.dia_from + it.dia_to) / 2 : (it.dia_from ? it.dia_from + 2 : it.dia_to ? it.dia_to - 2 : 0);
+  const exact = rows.filter(r => r.species === sp && Number(r.length_m) === len && r.dia_cm > 0);
+  if (dia && exact.length) {
+    const best = exact.reduce((a, b) => (Math.abs(b.dia_cm - dia) < Math.abs(a.dia_cm - dia) ? b : a));
+    return { ...best, level: `${factory}の${sp}${len}M ${best.dia_cm}㎝` };
+  }
+  const byLen = rows.find(r => r.species === sp && Number(r.length_m) === len && r.dia_cm === 0);
+  if (byLen) return { ...byLen, level: `${factory}の${sp}${len}M（径はまとめ）` };
+  const bySp = rows.find(r => r.species === sp && Number(r.length_m) === 0 && r.dia_cm === 0);
+  if (bySp) return { ...bySp, level: `${factory}の${sp}（まとめ）` };
+  const any = rows.filter(r => r.dia_cm === 0 && Number(r.length_m) === 0);
+  if (any.length) return { ...any[0], level: `${factory}（まとめ）` };
+  return null;
+}
+
+// 1枚のカードにかかる半日の数（手で決めていればそれ）
+function estimateHalves(it, factory, speed) {
+  if (it.halves_manual) return { halves: it.halves_manual, manual: true };
+  if (it.kind === '止め') return { halves: 2, manual: false };
+  const s = findSpeed(speed, factory, it);
+  if (!s || !it.qty) return { halves: 2, manual: false, speed: s };
+  const perDay = it.unit === '㎥' ? Number(s.m3_day) : Number(s.per_day);
+  if (!perDay) return { halves: 2, manual: false, speed: s };
+  return { halves: Math.max(1, Math.round(Number(it.qty) / perDay * 2)), manual: false, speed: s, perDay };
+}
+const halvesText = h => (h % 2 ? (h === 1 ? '半日' : `${(h / 2).toFixed(1)}日`) : `${h / 2}日`);
+
+// 生産順を上から並べる。start＝最初のカードが始まる枠
+function scheduleQueue(items, start, factory, holidays, speed, stops) {
+  let s = slotWork(start, holidays, stops);
+  return items.map(it => {
+    const est = estimateHalves(it, factory, speed);
+    const from = s;
+    let to = s;
+    for (let k = 1; k < est.halves; k++) to = slotWork(slotNext(to), holidays, stops);
+    s = slotWork(slotNext(to), holidays, stops);
+    return { item: it, from, to, ...est };
+  });
+}

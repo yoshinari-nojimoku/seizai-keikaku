@@ -1,11 +1,13 @@
-// 専務用の画面：週表で見る・足す・直す・過去から呼び出す
+// 専務用の画面：タブ（生産順／予定表）・予定表の表示と手書きカード・起動
+// 生産順は queue.js
 
 const S = {
   from: D.monday(D.today()),
   days: Number(localStorage.getItem('sk-days') || 14),
   showAll: false,
   entries: [],
-  edit: null,      // 編集中のカード
+  edit: null,      // 編集中の手書きカード
+  tab: localStorage.getItem('sk-tab') || 'queue',
 };
 
 const $ = id => document.getElementById(id);
@@ -17,6 +19,21 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2200);
 }
 
+// ---- タブ ----
+function setTab(t) {
+  S.tab = t;
+  try { localStorage.setItem('sk-tab', t); } catch (e) {}
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('queue-view').classList.toggle('hide', t !== 'queue');
+  $('sched-view').classList.toggle('hide', t !== 'sched');
+  $('print').classList.toggle('hide', t !== 'sched');
+  if (t === 'sched') load();
+}
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+// 生産順を直したら、予定表も読み直す（開いているときだけ）
+function onQueueSynced() { if (S.tab === 'sched') load(); }
+
+// ---- 予定表 ----
 async function load() {
   const to = D.add(S.from, S.days - 1);
   $('range').textContent = `${D.md(S.from)}〜${D.md(to)}`;
@@ -25,19 +42,19 @@ async function load() {
   $('showall').classList.toggle('on', S.showAll);
   try {
     S.entries = await Store.range(S.from, to);
-  } catch (e) { main.innerHTML = `<div class="msg">${esc(e.message)}</div>`; return; }
+  } catch (e) { main.innerHTML = `<div class="block msg">${esc(e.message)}</div>`; return; }
   draw();
 }
 
 function draw() {
-  const opts = { from: S.from, days: S.days, lanes: Store.lanes, entries: S.entries, holidays: Store.holidays, editable: true, showAll: S.showAll };
-  main.innerHTML = `<div class="weeks">${renderWeeks(opts)}</div>${renderDayList(opts)}`;
+  const opts = { from: S.from, days: S.days, lanes: Store.lanes, entries: S.entries, holidays: Store.holidays, stops: Store.stopMap(), editable: true, showAll: S.showAll };
+  main.innerHTML = `<div class="weeks"><div class="week block">${renderWeekGrid(opts)}</div></div>${renderDayList(opts).replace(/class="dl-day /g, 'class="dl-day block ')}`;
 }
 
-// ---- 編集の窓 ----
+// ---- 手書きカードの窓 ----
 function openEditor(e) {
   S.edit = { status: '予定', ...e };
-  $('dlg-title').textContent = e.id ? '計画カードを直す' : '計画カードを足す';
+  $('dlg-title').textContent = e.id ? 'カードを直す' : 'カードを足す';
   $('f-lane').innerHTML = Store.lanes.filter(l => l.active || l.id === Number(e.lane_id))
     .map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
   $('f-lane').value = e.lane_id;
@@ -51,7 +68,7 @@ function openEditor(e) {
   $('f-del').style.display = e.id ? '' : 'none';
   $('f-copy').style.display = e.id ? '' : 'none';
   $('f-meta').textContent = e.id
-    ? `最後に直した人：${e.updated_by || '—'}　${e.updated_at ? new Date(e.updated_at).toLocaleString('ja-JP') : ''}${e.source && e.source !== 'app' ? '（エクセルから取り込み）' : ''}`
+    ? `最後に直した人：${e.updated_by || '—'}　${e.updated_at ? new Date(e.updated_at).toLocaleString('ja-JP') : ''}${e.source && e.source.startsWith('excel') ? '（エクセルから取り込み）' : ''}`
     : '';
   $('p-q').value = '';
   $('dlg').showModal();
@@ -114,17 +131,43 @@ function copyCard() {
   toast('複製しました。日付を直して保存してください');
 }
 
-// ---- 操作 ----
+// ---- 予定表の操作 ----
 main.addEventListener('click', ev => {
   const card = ev.target.closest('.card[data-id]');
-  if (card) { const e = S.entries.find(x => String(x.id) === card.dataset.id); if (e) openEditor(e); return; }
+  if (card) {
+    const e = S.entries.find(x => String(x.id) === card.dataset.id);
+    if (!e) return;
+    // 生産順から作ったバー → 生産順の画面でそのカードを開く
+    if (e.source === 'queue') {
+      const qid = (e.source_ref || '').replace('queue:', '');
+      const it = Object.values(Q.data).flatMap(d => d.todo.concat(d.done)).find(x => String(x.id) === qid);
+      setTab('queue');
+      if (it && it.status !== '済') qOpenForm({ ...it });
+      else toast('このバーは済になったカードです（生産順の「済」から戻せます）');
+      return;
+    }
+    openEditor(e); return;
+  }
+  // 工場の段：押した半日の製材機を止める／戻す → 生産順のバーが並び直る
+  const st = ev.target.closest('[data-stop-lane]');
+  if (st) {
+    const { stopLane, date, half } = st.dataset;
+    (async () => {
+      try {
+        const on = await Store.toggleStop(stopLane, date, half);
+        await qSync(Number(stopLane)); qDraw(); await load();
+        toast(`${D.md(date)} ${HALF[half]}：${on ? '製材機を止めます' : '止めるのをやめました'}`);
+      } catch (e) { alert(e.message); }
+    })();
+    return;
+  }
   const cell = ev.target.closest('.g-cell[data-lane]');
   // 午前のマス＝その日まる1日、午後のマス＝その日の午後だけ、で開く（窓の中で直せる）
   if (cell) { openEditor({ lane_id: cell.dataset.lane, date_from: cell.dataset.date, date_to: cell.dataset.date, from_half: Number(cell.dataset.half || 0), to_half: 1, body: '' }); return; }
   const add = ev.target.closest('.dl-add');
   if (add) {
-    const first = Store.lanes.find(l => l.active);
-    openEditor({ lane_id: first ? first.id : Store.lanes[0].id, date_from: add.dataset.date, date_to: add.dataset.date, body: '' });
+    const first = Store.lanes.find(l => l.active && l.kind !== '工場') || Store.lanes[0];
+    openEditor({ lane_id: first.id, date_from: add.dataset.date, date_to: add.dataset.date, body: '' });
   }
 });
 
@@ -167,22 +210,29 @@ document.addEventListener('keydown', ev => {
 // ---- 起動 ----
 (async () => {
   if (window.innerWidth < 760 && !localStorage.getItem('sk-days')) S.days = 7;
+  const gate = $('gate');
   let r;
-  try { r = await Store.init(); } catch (e) { main.innerHTML = `<div class="msg">${esc(e.message)}</div>`; return; }
+  try { r = await Store.init(); } catch (e) { gate.innerHTML = `<div class="block msg">${esc(e.message)}</div>`; return; }
   if (r.needLogin) {
     const err = new URLSearchParams(location.search).get('error_description');
-    const errHtml = err ? '<p style="color:var(--red)">ログインできませんでした（' + esc(err) + '）。<br>数分おいて、もう一度押してください。</p>' : '';
+    const errHtml = err ? '<p style="color:var(--maroon)">ログインできませんでした（' + esc(err) + '）。<br>数分おいて、もう一度押してください。</p>' : '';
     if (err) history.replaceState(null, '', location.pathname);
-    main.innerHTML = '<div class="msg">' + errHtml + '<p>製材計画を直すには、Googleアカウントでログインしてください。</p><button class="btn primary" id="login">Googleでログイン</button></div>';
+    gate.innerHTML = '<div class="block msg">' + errHtml + '<p>製材計画を直すには、Googleアカウントでログインしてください。</p><button class="bigbtn dg" id="login">Googleでログイン</button></div>';
     $('login').onclick = () => Store.login();
     return;
   }
   if (r.notEditor) {
-    main.innerHTML = `<div class="msg"><p>${esc(Store.user.email)} には書き込みの許可がありません。</p><button class="btn" id="logout">ログアウト</button></div>`;
+    gate.innerHTML = `<div class="block msg"><p>${esc(Store.user.email)} には書き込みの許可がありません。</p><button class="bigbtn" id="logout">ログアウト</button></div>`;
     $('logout').onclick = () => Store.logout();
     return;
   }
+  gate.classList.add('hide');
   $('who').innerHTML = Store.remote ? `${esc(Store.user.email)} <a href="#" id="logout">ログアウト</a>` : '試作モード（保存されません）';
   if ($('logout')) $('logout').onclick = ev => { ev.preventDefault(); Store.logout(); };
-  load();
+  try {
+    await qLoadAll();
+    // 開いたときに、生産順から作るバーを予定表とそろえる（社休日が増えた時などのため。変わった所だけ書く）
+    for (const f of factories()) await qSync(f.id);
+  } catch (e) { toast(e.message); }
+  setTab(S.tab);
 })();

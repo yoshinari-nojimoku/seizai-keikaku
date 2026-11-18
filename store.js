@@ -10,6 +10,10 @@ const Store = {
   lanes: [],
   holidays: {},
   mem: [],   // 試作モードのカード
+  speed: [],     // 挽く速さ（工場×樹種×長さ×径級）
+  stops: [],     // 製材機を止める半日 [{lane_id, day, half, label}]
+  qmem: [],      // 試作モードの生産順
+  smem: {},      // 試作モードの生産順の始まり
 
   // 戻り値：{ ok: true } / ログインが要るときは { needLogin: true }
   async init() {
@@ -18,16 +22,24 @@ const Store = {
       this.lanes = s.lanes;
       this.mem = s.entries.map(e => ({ ...e }));
       this.holidays = Object.fromEntries((s.holidays || []).map(h => [h.day, h.label || '休み']));
+      this.speed = s.speed || [];
+      this.stops = (s.stops || []).map(x => ({ ...x }));
+      this.qmem = (s.queue || []).map(q => ({ ...q }));
+      this.smem = { ...(s.queue_start || {}) };
       return { ok: true };
     }
     this.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data: { session } } = await this.sb.auth.getSession();
     if (!session) return { needLogin: true };
     this.user = session.user;
-    const [l, h] = await Promise.all([
+    const [l, h, sp, st] = await Promise.all([
       this.sb.from('lanes').select('*').order('sort'),
       this.sb.from('holidays').select('*'),
+      this.sb.from('speed').select('*'),
+      this.sb.from('stops').select('*').gte('day', D.add(D.today(), -120)),
     ]);
+    this.stops = st.data || [];
+    this.speed = (sp.data || []).map(r => ({ ...r, length_m: Number(r.length_m), per_day: Number(r.per_day), m3_day: Number(r.m3_day) }));
     if (l.error) throw new Error('段の読み込みに失敗しました：' + l.error.message);
     if (!l.data.length) return { notEditor: true };   // 鍵（RLS）で弾かれると0件になる
     this.lanes = l.data;
@@ -91,5 +103,101 @@ const Store = {
     const { data, error } = await this.sb.rpc('search_past', { q, lane: laneId ? Number(laneId) : null, lim: 20 });
     if (error) throw new Error('検索に失敗しました：' + error.message);
     return data;
+  },
+
+  // ===== 製材機を止める日 =====
+  stopMap() { return Object.fromEntries(this.stops.map(x => [`${x.lane_id}|${x.day}|${x.half}`, x.label])); },
+  stopSet(laneId) { return new Set(this.stops.filter(x => x.lane_id === Number(laneId)).map(x => `${x.day}|${x.half}`)); },
+  // 押すたびに止める／戻す
+  async toggleStop(laneId, day, half, label = 'ツイン止め') {
+    laneId = Number(laneId); half = Number(half);
+    const i = this.stops.findIndex(x => x.lane_id === laneId && x.day === day && x.half === half);
+    if (i >= 0) {
+      if (this.remote) {
+        const { error } = await this.sb.from('stops').delete().match({ lane_id: laneId, day, half });
+        if (error) throw new Error('戻せませんでした：' + error.message);
+      }
+      this.stops.splice(i, 1);
+      return false;
+    }
+    if (this.remote) {
+      const { error } = await this.sb.from('stops').insert({ lane_id: laneId, day, half, label });
+      if (error) throw new Error('止める日の保存に失敗しました：' + error.message);
+    }
+    this.stops.push({ lane_id: laneId, day, half, label });
+    return true;
+  },
+
+  // ===== 生産順 =====
+  // 工場ごとの生産順（予定と、最近の済10件）
+  async queueList(laneId) {
+    if (!this.remote) {
+      const all = this.qmem.filter(q => q.lane_id === laneId);
+      return { todo: all.filter(q => q.status === '予定').sort((a, b) => a.seq - b.seq),
+               done: all.filter(q => q.status === '済').sort((a, b) => String(b.done_at).localeCompare(String(a.done_at))).slice(0, 10) };
+    }
+    const [t, d] = await Promise.all([
+      this.sb.from('queue').select('*').eq('lane_id', laneId).eq('status', '予定').order('seq'),
+      this.sb.from('queue').select('*').eq('lane_id', laneId).eq('status', '済').order('done_at', { ascending: false }).limit(10),
+    ]);
+    if (t.error || d.error) throw new Error('生産順の読み込みに失敗しました：' + (t.error || d.error).message);
+    return { todo: t.data, done: d.data };
+  },
+
+  async queueStart(laneId) {
+    if (!this.remote) return this.smem[laneId] || null;
+    const { data, error } = await this.sb.from('queue_start').select('*').eq('lane_id', laneId).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? { day: data.day, half: data.half } : null;
+  },
+
+  async setQueueStart(laneId, slot) {
+    if (!this.remote) { this.smem[laneId] = { ...slot }; return; }
+    const { error } = await this.sb.from('queue_start').upsert({ lane_id: laneId, day: slot.day, half: slot.half });
+    if (error) throw new Error('始まりの保存に失敗しました：' + error.message);
+  },
+
+  // 生産順のカードを保存（id があれば上書き）
+  async queueSave(it) {
+    const row = { lane_id: Number(it.lane_id), seq: Number(it.seq || 0), kind: it.kind, species: it.species || null,
+      length_m: it.length_m ? Number(it.length_m) : null, dia_from: it.dia_from ? Number(it.dia_from) : null,
+      dia_to: it.dia_to ? Number(it.dia_to) : null, qty: it.qty ? Number(it.qty) : null, unit: it.unit || '本',
+      halves_manual: it.halves_manual ? Number(it.halves_manual) : null, memo: (it.memo || '').trim(),
+      status: it.status || '予定', done_at: it.done_at || null };
+    if (!this.remote) {
+      if (it.id) { const i = this.qmem.findIndex(x => x.id === it.id); this.qmem[i] = { ...this.qmem[i], ...row }; return this.qmem[i]; }
+      const n = { ...row, id: 'q-' + Date.now() + Math.random().toString(36).slice(2, 6) }; this.qmem.push(n); return n;
+    }
+    const q = it.id ? this.sb.from('queue').update(row).eq('id', it.id) : this.sb.from('queue').insert(row);
+    const { data, error } = await q.select().single();
+    if (error) throw new Error('保存に失敗しました：' + error.message);
+    return data;
+  },
+
+  async queueRemove(id) {
+    if (!this.remote) { this.qmem = this.qmem.filter(x => x.id !== id); return; }
+    const { error } = await this.sb.from('queue').delete().eq('id', id);
+    if (error) throw new Error('削除に失敗しました：' + error.message);
+  },
+
+  // 並び順をまとめて書く [{id, seq}]
+  async queueReorder(list) {
+    if (!this.remote) { list.forEach(({ id, seq }) => { const x = this.qmem.find(q => q.id === id); if (x) x.seq = seq; }); return; }
+    for (const { id, seq } of list) {
+      const { error } = await this.sb.from('queue').update({ seq }).eq('id', id);
+      if (error) throw new Error('並べ替えに失敗しました：' + error.message);
+    }
+  },
+
+  // 生産順から作ったバーを予定表へ反映
+  async syncBars(laneId, bars) {
+    if (!this.remote) {
+      const keep = new Set(this.qmem.filter(q => q.status === '済').map(q => 'queue:' + q.id));
+      this.mem = this.mem.filter(e => !(e.lane_id === laneId && e.source === 'queue' && !keep.has(e.source_ref)));
+      bars.forEach(b => this.mem.push({ id: 'b-' + b.ref, lane_id: laneId, status: '予定', source: 'queue', source_ref: b.ref, ...b }));
+      return;
+    }
+    const { error } = await this.sb.rpc('sync_queue_bars', { p_lane: laneId, p_bars: bars });
+    if (error) throw new Error('予定表への反映に失敗しました：' + error.message);
   },
 };
