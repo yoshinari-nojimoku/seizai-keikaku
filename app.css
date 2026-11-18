@@ -309,3 +309,23 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .qi .no { width: 34px; font-size: 18px; }
   .qhead .f { font-size: 26px; }
 }
+
+/* 予定表も大きく見やすく（2026-11-18 専務「予定表の字も大きくして」）。印刷は下の @media print の大きさのまま */
+@media screen {
+  .grid { grid-template-columns: 124px repeat(var(--cols), minmax(0, 1fr)); min-width: calc(124px + var(--cols) * 44px); }
+  .g-corner { font-size: 13px; }
+  .g-day { font-size: 19px; padding: 6px 2px 4px; }
+  .g-day small { font-size: 13px; }
+  .g-half { font-size: 12px; line-height: 20px; }
+  .g-lane { font-size: 16px; padding: 8px 10px; }
+  .g-lane.k-工場 { font-size: 24px; }
+  .g-cell { min-height: 44px; }
+  .g-stop { min-height: 26px; font-size: 12px; line-height: 24px; }
+  .card { font-size: 15px; line-height: 1.45; padding: 6px 8px; border-radius: 9px; }
+  .c-span { font-size: 12px; }
+  .c-st, .c-auto { font-size: 12px; padding: 0 5px; }
+  .c-cut { font-size: 12px; }
+  .subbar .btn, .subbar .range { font-size: 16px; }
+  .subbar .btn { padding: 6px 16px; }
+  .dl-day .card { font-size: 16px; }
+}
