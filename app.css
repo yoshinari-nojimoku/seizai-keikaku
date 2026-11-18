@@ -405,11 +405,8 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
 .cardpop .cp-edit { border: 3px solid var(--ink); background: var(--plus); color: #fff; border-radius: 12px; padding: 8px 20px; font-size: 16px; font-weight: 800; box-shadow: 0 4px 0 rgba(0,0,0,.4); }
 @media print { .cardpop { display: none !important; } .g-cell.frow { height: auto !important; } .card.fcard { max-height: none !important; overflow: visible !important; } .card.fcard.clip::after { display: none; } }
 
-/* ほかの段（花尻・引き取り元・原木市など）は2行ほどで切る。押すとポップアップで全部 */
+/* 文字が切れたカードの印 */
 @media screen {
-  .g-cell:not(.frow) { min-height: 36px; }
-  .card.dcard { max-height: 58px; overflow: hidden; cursor: pointer; }
-  .card.fcard.clip::after, .card.dcard.clip::after { content: '⋯'; position: absolute; right: 4px; bottom: 0; font-size: 16px; font-weight: 800;
+  .card.fcard.clip::after { content: '⋯'; position: absolute; right: 4px; bottom: 0; font-size: 16px; font-weight: 800;
     line-height: 1; color: var(--burn); background: rgba(255,251,241,.95); border-radius: 6px; padding: 0 5px 2px; }
 }
-@media print { .card.dcard { max-height: none !important; overflow: visible !important; } .card.dcard.clip::after { display: none; } }

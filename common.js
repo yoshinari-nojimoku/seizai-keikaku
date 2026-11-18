@@ -156,7 +156,7 @@ function renderWeekGrid({ from, days = 7, lanes, entries, holidays = {}, stops =
     for (const e of cards) {
       const c1 = Math.max(0, D.diff(from, e.date_from) * 2 + (daily ? 0 : fh(e))) + 2;
       const c2 = Math.min(days * 2 - 1, D.diff(from, e.date_to) * 2 + (daily ? 1 : th(e))) + 3;
-      html += `<div class="${cardClass(e)}${factory ? ' fcard' : ' dcard'}" data-id="${e.id}" style="grid-row:${row + e._track};grid-column:${c1} / ${c2}">${cardInner(e, from, to, daily)}</div>`;
+      html += `<div class="${cardClass(e)}${factory ? ' fcard' : ''}" data-id="${e.id}" style="grid-row:${row + e._track};grid-column:${c1} / ${c2}">${cardInner(e, from, to, daily)}</div>`;
     }
     row += n;
   }
@@ -199,19 +199,18 @@ function renderWeeks(opts) {
 // ===== 飛鳥・本社の段の高さを一定にして、表が画面いっぱいに収まるようにする =====
 // 文字があふれたカードは下を切り、「…」の印を出す（押すとポップアップで全部見られる）
 function fitFactoryRows(root) {
+  // 飛鳥・本社の2段がちょうど1画面に入る高さにする（その下の段はスクロールで見る）
   const grid = root.querySelector('.weeks .grid');
   if (!grid || !grid.offsetParent || window.matchMedia('print').matches) return;
-  const rows = new Set([...grid.querySelectorAll('.g-cell.frow')].map(c => c.style.gridRow));
-  const n = rows.size;
+  const cells = [...grid.querySelectorAll('.g-cell.frow')];
+  const n = new Set(cells.map(c => c.style.gridRow)).size;
   if (!n) return;
   const base = 100;
   grid.style.setProperty('--frow', base + 'px');
-  const H = grid.offsetHeight;
-  const top = grid.getBoundingClientRect().top + window.scrollY;
-  const avail = window.innerHeight - top - 28;
-  const frow = Math.max(110, Math.floor((avail - (H - n * base)) / n));
+  const bottom = Math.max(...cells.map(c => c.getBoundingClientRect().bottom)) + window.scrollY;   // 本社の段の下
+  const frow = Math.max(110, Math.floor(base + (window.innerHeight - 24 - bottom) / n));
   grid.style.setProperty('--frow', frow + 'px');
-  grid.querySelectorAll('.card.fcard, .card.dcard').forEach(c => c.classList.toggle('clip', c.scrollHeight > c.clientHeight + 2));
+  grid.querySelectorAll('.card.fcard').forEach(c => c.classList.toggle('clip', c.scrollHeight > c.clientHeight + 2));
 }
 
 // ===== カードを押したときのポップアップ（全文を見る） =====
