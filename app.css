@@ -467,3 +467,7 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .sheet-head b { font-size: 16pt; } .sheet-head span { font-size: 12pt; } .sheet-head small { font-size: 8pt; }
 }
 .sheet .g-day.today { box-shadow: none; }
+
+/* 送る2週の1枚（2026-11-18） */
+.sheet.one .g-cell.frow { min-height: 220px; }
+.shot .card { border-width: 2px; }

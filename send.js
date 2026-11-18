@@ -1,14 +1,15 @@
 // 印刷・WORKSで送る（2026-11-18）
-//   全体   … いま予定表に出している範囲（2週など）→ 竹中さん
-//   飛鳥1週 … 月〜日の飛鳥の製材スケジュール → 渥美課長
-//   本社1週 … 月〜日の本社の製材スケジュール → 本社製材予定（グループ）
-// 送るときは画面を画像（PNG）にして、Supabase の works_send から bot専務で送る
+//   全体   … 2週分（全部の段）→ 竹中さん
+//   飛鳥   … 2週分の飛鳥の製材スケジュール → 渥美課長
+//   本社   … 2週分の本社の製材スケジュール → 本社製材予定（グループ）
+// 送るときは画面を高い解像度の白黒の画像（PNG）にして、Supabase の works_send から bot専務で送る（2026-11-18 専務）
 
 const SEND = { monday: null, test: false };
+const DAYS = 14;   // 送る・印刷する分（2週）
 const SHEETS = [
-  { key: 'all', name: '全体', note: 'いま予定表に出している範囲（全部の段）', to: '竹中さん' },
-  { key: 'asuka', name: '飛鳥 1週', note: '月〜日の飛鳥の製材スケジュール', to: '渥美課長', lane: '飛鳥' },
-  { key: 'honsha', name: '本社 1週', note: '月〜日の本社の製材スケジュール', to: '本社製材予定（グループ）', lane: '本社' },
+  { key: 'all', name: '全体 2週', note: '全部の段', to: '竹中さん' },
+  { key: 'asuka', name: '飛鳥 2週', note: '飛鳥の製材スケジュール', to: '渥美課長', lane: '飛鳥' },
+  { key: 'honsha', name: '本社 2週', note: '本社の製材スケジュール', to: '本社製材予定（グループ）', lane: '本社' },
 ];
 
 // 表示の始まり以降の最初の月曜（金曜に翌週を組むので、金曜から見ていれば翌週になる）
@@ -21,12 +22,11 @@ function openSendDlg() {
   $('senddlg').showModal();
 }
 function drawSendDlg() {
-  const to = D.add(SEND.monday, 6);
-  const range = `${wdText(S.from)}〜${wdText(D.add(S.from, S.days - 1))}`;
+  const to = D.add(SEND.monday, DAYS - 1);
   $('send-body').innerHTML =
     `<h2>印刷・WORKSで送る</h2>` +
-    `<div class="sd-week">1週の分：<button type="button" class="dbtn" data-sw="-7">◀</button><b>${wdText(SEND.monday)}〜${wdText(to)}</b><button type="button" class="dbtn" data-sw="7">▶</button></div>` +
-    SHEETS.map(s => `<div class="sd-row"><div class="sd-name"><b class="dg">${s.name}</b><small>${s.key === 'all' ? range : s.note}</small></div>` +
+    `<div class="sd-week">送る2週：<button type="button" class="dbtn" data-sw="-7">◀</button><b>${wdText(SEND.monday)}〜${wdText(to)}</b><button type="button" class="dbtn" data-sw="7">▶</button></div>` +
+    SHEETS.map(s => `<div class="sd-row"><div class="sd-name"><b class="dg">${s.name}</b><small>${s.note}</small></div>` +
       `<button type="button" class="dbtn" data-print="${s.key}">印刷</button>` +
       `<button type="button" class="dbtn primary" data-send="${s.key}">${SEND.test ? '自分あてに試し送り' : esc(s.to) + 'へ送る'}</button></div>`).join('') +
     `<label class="sd-test"><input type="checkbox" id="sd-test"${SEND.test ? ' checked' : ''}> ためしに自分あてに送る（宛先を全部「自分」にする）</label>` +
@@ -37,22 +37,22 @@ function drawSendDlg() {
 // 送る・印刷する1枚を作る（白い紙の見た目）
 async function buildSheet(key) {
   const now = new Date().toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const from = SEND.monday, to = D.add(from, DAYS - 1);
+  const sheet = SHEETS.find(x => x.key === key);
+  const all = await Store.range(from, to);
+  const range = `${wdText(from)}〜${wdText(to)}`;
   if (key === 'all') {
-    const opts = { from: S.from, days: S.days, lanes: Store.lanes, entries: S.entries, holidays: Store.holidays, stops: Store.stopMap(), editable: false, showAll: S.showAll };
-    return { title: `製材計画 ${wdText(S.from)}〜${wdText(D.add(S.from, S.days - 1))}`,
-      html: `<div class="sheet"><div class="sheet-head"><b>製材計画</b><span>${wdText(S.from)}〜${wdText(D.add(S.from, S.days - 1))}</span><small>作成 ${now}</small></div>${renderWeekGrid(opts)}</div>` };
+    const opts = { from, days: DAYS, lanes: Store.lanes, entries: all, holidays: Store.holidays, stops: Store.stopMap(), editable: false, showAll: false };
+    return { title: `製材計画 ${range}`,
+      html: `<div class="sheet"><div class="sheet-head"><b>製材計画</b><span>${range}</span><small>作成 ${now}</small></div>${renderWeekGrid(opts)}</div>` };
   }
-  const sheet = SHEETS.find(s => s.key === key);
   const lane = Store.lanes.find(l => l.name === sheet.lane);
-  const to = D.add(SEND.monday, 6);
-  const entries = (await Store.range(SEND.monday, to)).filter(e => e.lane_id === lane.id);
-  const opts = { from: SEND.monday, days: 7, lanes: [lane], entries, holidays: Store.holidays, stops: Store.stopMap(), editable: false, showAll: true };
-  const title = `${sheet.lane} 製材スケジュール ${wdText(SEND.monday)}〜${wdText(to)}`;
-  return { title, html: `<div class="sheet one"><div class="sheet-head"><b>${sheet.lane} 製材スケジュール</b><span>${wdText(SEND.monday)}〜${wdText(to)}</span><small>作成 ${now}</small></div>${renderWeekGrid(opts)}</div>` };
+  const opts = { from, days: DAYS, lanes: [lane], entries: all.filter(e => e.lane_id === lane.id), holidays: Store.holidays, stops: Store.stopMap(), editable: false, showAll: true };
+  return { title: `${sheet.lane} 製材スケジュール ${range}`,
+    html: `<div class="sheet one"><div class="sheet-head"><b>${sheet.lane} 製材スケジュール</b><span>${range}</span><small>作成 ${now}</small></div>${renderWeekGrid(opts)}</div>` };
 }
 
 async function printSheet(key) {
-  if (key === 'all') { $('senddlg').close(); window.print(); return; }
   const { html } = await buildSheet(key);
   $('printarea').innerHTML = `<div class="week">${html}</div>`;
   document.body.classList.add('print-sheet');
@@ -69,7 +69,18 @@ async function sheetPng(html) {
   document.body.appendChild(box);
   try {
     await document.fonts.ready;
-    const canvas = await html2canvas(box, { backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false });
+    // 印刷しても文字がぼけない解像度（横およそ4800px）
+    const canvas = await html2canvas(box, { backgroundColor: '#ffffff', scale: 3, useCORS: true, logging: false });
+    // 白黒にする（明るさだけ残す。薄い色は白に寄せて、文字をくっきり）
+    const ctx = canvas.getContext('2d');
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const px = img.data;
+    for (let i = 0; i < px.length; i += 4) {
+      let y = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      y = y > 200 ? 255 - (255 - y) * 0.6 : y * 0.92;   // 地は明るく、文字・線は濃く
+      px[i] = px[i + 1] = px[i + 2] = y;
+    }
+    ctx.putImageData(img, 0, 0);
     return canvas.toDataURL('image/png').split(',')[1];
   } finally { box.remove(); }
 }
