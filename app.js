@@ -160,7 +160,10 @@ document.addEventListener('keydown', ev => {
   let r;
   try { r = await Store.init(); } catch (e) { main.innerHTML = `<div class="msg">${esc(e.message)}</div>`; return; }
   if (r.needLogin) {
-    main.innerHTML = '<div class="msg"><p>製材計画を直すには、Googleアカウントでログインしてください。</p><button class="btn primary" id="login">Googleでログイン</button></div>';
+    const err = new URLSearchParams(location.search).get('error_description');
+    const errHtml = err ? '<p style="color:var(--red)">ログインできませんでした（' + esc(err) + '）。<br>数分おいて、もう一度押してください。</p>' : '';
+    if (err) history.replaceState(null, '', location.pathname);
+    main.innerHTML = '<div class="msg">' + errHtml + '<p>製材計画を直すには、Googleアカウントでログインしてください。</p><button class="btn primary" id="login">Googleでログイン</button></div>';
     $('login').onclick = () => Store.login();
     return;
   }
