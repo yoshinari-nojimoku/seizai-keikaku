@@ -410,3 +410,60 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .card.fcard.clip::after { content: '⋯'; position: absolute; right: 4px; bottom: 0; font-size: 16px; font-weight: 800;
     line-height: 1; color: var(--burn); background: rgba(255,251,241,.95); border-radius: 6px; padding: 0 5px 2px; }
 }
+
+/* 印刷・WORKSで送る（2026-11-18） */
+#senddlg { width: min(640px, 96vw); }
+.dlg-one { padding: 18px; }
+.dlg-one h2 { margin: 0 0 10px; font-size: 20px; color: var(--ink); font-family: 'Dela Gothic One', sans-serif; font-weight: 400; }
+.dlg-one .dbtn { border: 2px solid var(--burn); background: var(--paper); color: var(--burn); border-radius: 999px; padding: 7px 14px; font-weight: 800; font-size: 14px; }
+.dlg-one .dbtn.primary { background: var(--plus); border-color: var(--ink); color: #fff; }
+.dlg-one .dbtn:disabled { opacity: .5; }
+.sd-week { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-weight: 800; color: var(--burn2); }
+.sd-week b { color: var(--ink); font-size: 16px; }
+.sd-row { display: flex; align-items: center; gap: 8px; background: var(--paper); border: 2px solid var(--burn); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+.sd-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sd-name b { font-size: 19px; color: var(--ink); }
+.sd-name small { font-size: 12px; font-weight: 700; color: var(--burn2); }
+.sd-test { display: block; margin-top: 12px; font-size: 13px; font-weight: 800; color: var(--burn2); }
+.dlg-one .acts { display: flex; margin-top: 10px; }
+.dlg-one .acts .spacer { flex: 1; }
+
+/* 送る・印刷する1枚（白い紙） */
+#printarea { display: none; }
+.shot { position: fixed; left: -20000px; top: 0; width: 1600px; background: #fff; padding: 18px; }
+.sheet { background: #fff; color: var(--ink); }
+.sheet-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
+.sheet-head b { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 26px; }
+.sheet-head span { font-size: 20px; font-weight: 800; }
+.sheet-head small { margin-left: auto; font-size: 13px; color: var(--burn2); font-weight: 700; }
+.sheet .grid { min-width: 0; }
+.sheet .g-cell.frow { height: auto !important; min-height: 60px; }
+.sheet .card.fcard { max-height: none !important; overflow: visible !important; }
+.sheet .card.fcard.clip::after { display: none; }
+.sheet .g-cell[data-lane]:hover, .sheet .g-stop[data-stop-lane]:hover { background: inherit; }
+/* 工場1週の1枚は大きく */
+.sheet.one .grid { grid-template-columns: 110px repeat(var(--cols), minmax(0, 1fr)); }
+.sheet.one .g-day { font-size: 24px; }
+.sheet.one .g-day small { font-size: 15px; }
+.sheet.one .g-half { font-size: 13px; }
+.sheet.one .g-lane.k-工場 { font-size: 30px; }
+.sheet.one .g-cell.frow { min-height: 260px; }
+.sheet.one .card .c-title { font-size: 22px; }
+.sheet.one .card .c-sp { font-size: 32px; }
+.sheet.one .card .c-rest { font-size: 17px; }
+.sheet.one .c-span, .sheet.one .c-auto { font-size: 13px; }
+.sheet.one .g-stop { font-size: 15px; min-height: 30px; line-height: 28px; }
+
+@media print {
+  body.print-sheet main > *:not(#printarea) { display: none !important; }
+  body.print-sheet #printarea { display: block !important; }
+  body.print-sheet #sched-view { display: none !important; }
+  .sheet.one .g-cell.frow { min-height: 70mm; }
+  .sheet.one .card .c-title { font-size: 13pt; }
+  .sheet.one .card .c-sp { font-size: 18pt; }
+  .sheet.one .card .c-rest { font-size: 10pt; }
+  .sheet.one .g-day { font-size: 13pt; }
+  .sheet.one .g-lane.k-工場 { font-size: 16pt; }
+  .sheet-head b { font-size: 16pt; } .sheet-head span { font-size: 12pt; } .sheet-head small { font-size: 8pt; }
+}
+.sheet .g-day.today { box-shadow: none; }

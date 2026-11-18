@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=15">
+<link rel="stylesheet" href="app.css?v=17">
 </head>
 <body>
 <header class="bar">
@@ -17,7 +17,7 @@
     <button class="tab" data-tab="sched">予定表</button>
   </div>
   <span class="spacer"></span>
-  <button class="btn" id="print">印刷</button>
+  <button class="btn primary" id="print">印刷・送る</button>
   <span class="who" id="who"></span>
 </header>
 
@@ -49,6 +49,10 @@
     <div id="main"></div>
   </section>
 </main>
+
+<!-- 印刷・WORKSで送る -->
+<dialog id="senddlg"><div class="dlg-one block" id="send-body"></div></dialog>
+<div id="printarea"></div>
 
 <dialog id="dlg">
   <form method="dialog" class="dlg block" id="form">
@@ -92,6 +96,8 @@
 <script src="common.js?v=13"></script>
 <script src="store.js?v=5"></script>
 <script src="queue.js?v=6"></script>
-<script src="app.js?v=8"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="app.js?v=9"></script>
+<script src="send.js?v=1"></script>
 </body>
 </html>

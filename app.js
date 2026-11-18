@@ -199,7 +199,7 @@ $('today').onclick = () => { S.from = D.monday(D.today()); load(); };
 $('w1').onclick = () => { S.days = 7; localStorage.setItem('sk-days', 7); load(); };
 $('w2').onclick = () => { S.days = 14; localStorage.setItem('sk-days', 14); load(); };
 $('showall').onclick = () => { S.showAll = !S.showAll; draw(); $('showall').classList.toggle('on', S.showAll); };
-$('print').onclick = () => window.print();
+$('print').onclick = () => openSendDlg();   // send.js
 
 $('form').addEventListener('submit', ev => ev.preventDefault());   // Enterで窓が閉じないように
 document.querySelectorAll('#f-status [data-v]').forEach(b => b.onclick = () => setStatus(b.dataset.v));
