@@ -113,7 +113,7 @@ const Store = {
   stopMap() { return Object.fromEntries(this.stops.map(x => [`${x.lane_id}|${x.day}|${x.half}`, x.label])); },
   stopSet(laneId) { return new Set(this.stops.filter(x => x.lane_id === Number(laneId)).map(x => `${x.day}|${x.half}`)); },
   // 押すたびに止める／戻す
-  async toggleStop(laneId, day, half, label = 'ツイン止め') {
+  async toggleStop(laneId, day, half, label = '製材止') {
     laneId = Number(laneId); half = Number(half);
     const i = this.stops.findIndex(x => x.lane_id === laneId && x.day === day && x.half === half);
     if (i >= 0) {
