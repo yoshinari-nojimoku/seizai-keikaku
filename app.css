@@ -274,3 +274,38 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .g-lane.k-工場 { font-size: 11pt; }
 }
 .print-head { display: none; }
+
+/* 生産順を大きく見やすく（2026-11-18 専務「文字大きくして」） */
+.qcol { padding: 16px; }
+.qhead { margin-bottom: 8px; align-items: center; }
+.qhead .f { font-size: 34px; }
+.qhead .st { font-size: 14px; line-height: 1.6; }
+.qhead .st b { font-size: 20px; }
+.qhead .st button { font-size: 14px; padding: 3px 12px; }
+.qstart { font-size: 15px; }
+.qstart input, .qstart select, .qstart button { height: 42px; font-size: 16px; }
+.qi { margin-top: 12px; border-width: 3px; border-radius: 12px; min-height: 76px; }
+.qi .no { width: 44px; font-size: 24px; }
+.qi .sp { width: 66px; font-size: 28px; }
+.qi .sp small { font-size: 14px; }
+.qi .d { padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; }
+.qi .d b { font-size: 24px; letter-spacing: .02em; }
+.qi .d .m { font-size: 15px; margin-top: 2px; }
+.qi .when { width: 160px; font-size: 15px; padding: 8px 10px; }
+.qi .when b { font-size: 28px; line-height: 1.15; }
+.qi .when .man { font-size: 13px; }
+.qi .grip { width: 40px; }
+.qi .grip button { font-size: 18px; }
+.qdone-btn { font-size: 16px; padding: 6px 18px; margin-top: 8px; }
+.add { font-size: 20px; padding: 14px; margin-top: 16px; }
+.qempty { font-size: 16px; }
+.qdone { font-size: 14px; }
+@media (max-width: 760px) {
+  .qi .d b { font-size: 19px; }
+  .qi .d .m { font-size: 13px; }
+  .qi .when { width: 118px; font-size: 12px; }
+  .qi .when b { font-size: 22px; }
+  .qi .sp { width: 52px; font-size: 22px; }
+  .qi .no { width: 34px; font-size: 18px; }
+  .qhead .f { font-size: 26px; }
+}
