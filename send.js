@@ -10,6 +10,7 @@ const SHEETS = [
   { key: 'all', name: '全体 2週', note: '全部の段', to: '竹中さん' },
   { key: 'asuka', name: '飛鳥 2週', note: '飛鳥の製材スケジュール', to: '渥美課長', lane: '飛鳥' },
   { key: 'honsha', name: '本社 2週', note: '本社の製材スケジュール', to: '本社製材予定（グループ）', lane: '本社' },
+  { key: 'queue', name: '生産順', note: '飛鳥・本社の挽く順（全部・白黒）', to: '竹中さん', target: 'takenaka', bw: true },
 ];
 
 // 表示の始まり以降の最初の月曜（金曜に翌週を組むので、金曜から見ていれば翌週になる）
@@ -35,8 +36,32 @@ function drawSendDlg() {
 }
 
 // 送る・印刷する1枚を作る（白い紙の見た目）
+// 生産順の1枚（飛鳥・本社を左右に。メモも切らずに全部）
+function queueSheetHtml(now) {
+  const col = f => {
+    const d = Q.data[f.id];
+    if (!d) return '';
+    const rs = qSched(f.id);
+    const rows = rs.map((r, i) => {
+      const it = r.item;
+      const what = it.kind === '止め' ? '止め' : `${esc(it.species || '')}${it.length_m ? +it.length_m + 'M' : ''}`;
+      const size = it.kind === '止め' ? esc(queueTitle(it)) : esc([diaText(it), qtyText(it)].filter(Boolean).join('　'));
+      const memo = [kidoriText(it), it.memo].filter(Boolean).map(esc).join('<br>').replace(/\n/g, '<br>');
+      return `<tr><td class="no">${i + 1}</td><td class="sp">${what}</td><td class="sz">${size}</td><td class="mm">${memo}</td>` +
+        `<td class="wh">${slotText(r.from)}〜<br>${slotText(r.to)}</td><td class="dy">${halvesText(r.halves)}</td></tr>`;
+    }).join('');
+    const end = rs.length ? slotText(rs[rs.length - 1].to) : '―';
+    return `<div class="qs-col"><div class="qs-h"><b>${esc(f.name)}</b><span>始まり ${slotText(slotWork(d.start || nowSlot(), Store.holidays, Store.stopSet(f.id)))}／終わり ${end}</span></div>` +
+      `<table class="qs-t"><thead><tr><th>順</th><th>樹種</th><th>径・量</th><th>木取り・メモ</th><th>いつから</th><th>日数</th></tr></thead>` +
+      `<tbody>${rows || '<tr><td colspan="6">（なし）</td></tr>'}</tbody></table></div>`;
+  };
+  return `<div class="sheet qsheet"><div class="sheet-head"><b>生産順</b><span>飛鳥・本社の挽く順</span><small>作成 ${now}</small></div>` +
+    `<div class="qs-cols">${factories().map(col).join('')}</div></div>`;
+}
+
 async function buildSheet(key) {
   const now = new Date().toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (key === 'queue') { await qLoadAll(); return { title: `生産順（飛鳥・本社） 作成 ${now}`, html: queueSheetHtml(now) }; }
   const from = SEND.monday, to = D.add(from, DAYS - 1);
   const sheet = SHEETS.find(x => x.key === key);
   const all = await Store.range(from, to);
@@ -54,7 +79,8 @@ async function buildSheet(key) {
 
 async function printSheet(key) {
   const { html } = await buildSheet(key);
-  $('printarea').innerHTML = `<div class="week">${html}</div>`;
+  const bw = (SHEETS.find(x => x.key === key) || {}).bw;
+  $('printarea').innerHTML = `<div class="week${bw ? ' bw' : ''}">${html}</div>`;
   document.body.classList.add('print-sheet');
   $('senddlg').close();
   setTimeout(() => { window.print(); }, 50);
@@ -87,7 +113,7 @@ async function sheetPng(html) {
 
 async function sendSheet(key, btn) {
   const sheet = SHEETS.find(s => s.key === key);
-  const target = SEND.test ? 'test' : key;
+  const target = SEND.test ? 'test' : (sheet.target || key);
   const who = SEND.test ? '自分あて（ためし）' : sheet.to;
   if (!confirm(`「${sheet.name}」を画像にして、${who} へ WORKS で送ります。よろしいですか？`)) return;
   const msg = $('sd-msg');

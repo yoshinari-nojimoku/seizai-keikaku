@@ -526,3 +526,23 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
 .gb-sheet .gb-body { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .gb-sheet .gb-t { font-size: 20px; }
 @media (max-width: 900px) { .gb-head { grid-template-columns: 1fr; } .gb-ill { width: 100%; } }
+
+/* 生産順の1枚（印刷・送る。2026-11-20） */
+.qs-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.qs-h { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+.qs-h b { font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 28px; }
+.qs-h span { font-size: 15px; font-weight: 800; }
+.qs-t { width: 100%; border-collapse: collapse; font-size: 16px; }
+.qs-t th { background: #eee; font-size: 13px; padding: 5px 6px; border: 1.5px solid #333; text-align: left; }
+.qs-t td { border: 1.5px solid #333; padding: 6px; vertical-align: top; font-weight: 700; color: #111; }
+.qs-t td.no { width: 2em; text-align: center; font-size: 18px; }
+.qs-t td.sp { width: 3.6em; font-family: 'Dela Gothic One', sans-serif; font-weight: 400; font-size: 19px; }
+.qs-t td.sz { width: 10.5em; font-size: 18px; white-space: nowrap; }
+.qs-t td.mm { font-size: 14px; line-height: 1.45; }
+.qs-t td.wh { width: 6.5em; font-size: 13px; }
+.qs-t td.dy { width: 3.6em; text-align: right; font-size: 18px; }
+.week.bw { filter: grayscale(1); }
+@media print {
+  .qs-t { font-size: 9pt; } .qs-t td.sp, .qs-t td.sz, .qs-t td.no, .qs-t td.dy { font-size: 10pt; } .qs-t td.mm, .qs-t td.wh { font-size: 8pt; }
+  .qs-h b { font-size: 14pt; } .qs-h span { font-size: 9pt; }
+}
