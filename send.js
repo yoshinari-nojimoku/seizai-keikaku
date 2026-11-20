@@ -47,7 +47,7 @@ function queueSheetHtml(now) {
       const what = it.kind === '止め' ? '止め' : `${esc(it.species || '')}${it.length_m ? +it.length_m + 'M' : ''}`;
       const size = it.kind === '止め' ? esc(queueTitle(it)) : esc([diaText(it), qtyText(it)].filter(Boolean).join('　'));
       const memo = [kidoriText(it), it.memo].filter(Boolean).map(esc).join('<br>').replace(/\n/g, '<br>');
-      return `<tr><td class="no">${i + 1}</td><td class="sp">${what}</td><td class="sz">${size}</td><td class="mm">${memo}</td>` +
+      return `<tr><td class="no">${i + 1}</td><td class="sp${it.species === '桧' ? ' hi' : ''}">${what}</td><td class="sz">${size}</td><td class="mm">${memo}</td>` +
         `<td class="wh">${slotText(r.from)}〜<br>${slotText(r.to)}</td><td class="dy">${halvesText(r.halves)}</td></tr>`;
     }).join('');
     const end = rs.length ? slotText(rs[rs.length - 1].to) : '―';

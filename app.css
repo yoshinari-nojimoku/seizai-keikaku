@@ -546,3 +546,5 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
   .qs-t { font-size: 9pt; } .qs-t td.sp, .qs-t td.sz, .qs-t td.no, .qs-t td.dy { font-size: 10pt; } .qs-t td.mm, .qs-t td.wh { font-size: 8pt; }
   .qs-h b { font-size: 14pt; } .qs-h span { font-size: 9pt; }
 }
+/* 生産順の1枚：桧の樹種のセルは灰色（白黒でも桧と分かるように） */
+.qs-t td.sp.hi { background: #b4b4b4; }
