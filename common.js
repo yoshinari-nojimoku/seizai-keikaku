@@ -34,6 +34,7 @@ const ILLUST = {
   kozai: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213406-1c3662ce39770c1a612545aae8e57371-1.jpg',
   saw: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-231555-b20bf7a31f32ab20fa2cbc59292ed821-1.jpg',
   truck: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-231652-76574da1b7ff43ca8bfa96a715c3cf44-2.jpg',
+  kiln: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261122-151858-c0a260a1bda5a3d0b1b8a06e49e5723f-2.jpg',
   logs: 'https://nojimoku-image.nojimoku-image-worker.workers.dev/img/2026/11/20261118-213434-f1c3e098bab459567c4e5f345f30bdff-1.jpg',
 };
 

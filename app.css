@@ -548,3 +548,35 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
 }
 /* 生産順の1枚：桧の樹種のセルは灰色（白黒でも桧と分かるように） */
 .qs-t td.sp.hi { background: #b4b4b4; }
+
+/* 乾燥機（2026-11-22） */
+.ks-head { display: grid; grid-template-columns: 220px 1fr auto; gap: 18px; align-items: center; padding: 16px; margin-bottom: 16px; }
+.ks-site { margin-bottom: 18px; }
+.ks-site-h { color: var(--cream); font-size: 22px; margin: 4px 4px 8px; }
+.ks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.ks-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border: 0; font: inherit; color: var(--burn); cursor: pointer; }
+.ks-card.free { opacity: .85; }
+.ks-name { display: flex; align-items: center; gap: 8px; }
+.ks-name b { font-size: 26px; color: var(--ink); }
+.ks-badge { margin-left: auto; font-size: 13px; font-weight: 800; border-radius: 999px; padding: 2px 10px; border: 2px solid var(--burn); background: var(--paper); }
+.ks-badge.on { background: var(--plus); color: #fff; border-color: var(--ink); }
+.ks-badge.out { background: var(--gold); color: var(--ink); border-color: var(--ink); }
+.ks-dates { font-size: 15px; font-weight: 700; color: var(--burn2); }
+.ks-dates b { color: var(--ink); font-size: 18px; }
+.ks-bar { height: 12px; border-radius: 999px; background: var(--paper); border: 2px solid var(--burn); overflow: hidden; }
+.ks-bar i { display: block; height: 100%; background: var(--plus); }
+.ks-left { display: flex; align-items: baseline; gap: 10px; font-weight: 800; color: var(--ink); }
+.ks-left b { font-size: 26px; color: var(--plus); }
+.ks-left span { margin-left: auto; font-size: 12px; color: var(--burn2); }
+.ks-tot { font-weight: 800; color: var(--ink); margin-top: 2px; }
+.ks-line { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--ink); }
+.ks-line .c-sp { font-family: 'Dela Gothic One', sans-serif; font-size: 18px; }
+.ks-line .c-sp.h { color: #B2385F; } .ks-line .c-sp.s { color: #2F7FAA; }
+.ks-line em { margin-left: auto; font-style: normal; font-size: 13px; color: var(--burn2); white-space: nowrap; }
+.ks-more { font-size: 12px; color: var(--burn2); }
+.ks-empty { font-size: 18px; font-weight: 800; color: var(--burn2); padding: 18px 0; text-align: center; }
+.ks-foot { font-size: 12px; font-weight: 700; color: var(--burn2); border-top: 1px dashed rgba(74,46,26,.3); padding-top: 6px; margin-top: 4px; }
+.ks-pop { width: min(560px, 96vw); }
+.ks-pb { margin-top: 8px; }
+.ks-pbh { font-size: 13px; font-weight: 800; color: var(--burn2); margin-bottom: 4px; }
+@media (max-width: 900px) { .ks-head { grid-template-columns: 1fr; } }

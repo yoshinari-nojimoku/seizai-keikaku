@@ -23,11 +23,12 @@ function toast(msg) {
 function setTab(t) {
   S.tab = t;
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  for (const v of ['home', 'queue', 'sched', 'genboku']) $(v + '-view').classList.toggle('hide', t !== v);
+  for (const v of ['home', 'queue', 'sched', 'genboku', 'kansouki']) $(v + '-view').classList.toggle('hide', t !== v);
   $('print').classList.toggle('hide', t !== 'sched');
   if (t === 'home') drawHome();
   if (t === 'sched') load();
   if (t === 'genboku') gbLoad();
+  if (t === 'kansouki') ksLoad();
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('.tab').forEach(b => b.onclick = () => setTab(b.dataset.tab));
@@ -38,6 +39,7 @@ const ROOMS = [
   { tab: 'queue', name: '生産順', sub: '工場ごとに挽く順を並べる。量から日数を自動で出す', img: () => ILLUST.saw },
   { tab: 'sched', name: '予定表', sub: '2週の製材・引き取り・原木市。印刷とWORKSへ送る', img: () => ILLUST.hero },
   { tab: 'genboku', name: '原木仕入れ', sub: '何をどれだけ買うか。更新してWORKSへ送る', img: () => ILLUST.truck },
+  { tab: 'kansouki', name: '乾燥機', sub: '各乾燥機の今の中身・出庫予定。ザイコノジステム2から', img: () => ILLUST.kiln },
 ];
 function drawHome() {
   $('home-view').innerHTML = `<div class="home-hello dg">製材計画アプリ</div>` +
