@@ -133,7 +133,8 @@ async function rzEnd() {
   d.tip.remove();
   document.body.classList.remove('rz-on');
   const e = d.e, end = d.end;
-  if (!end || (end.day === e.date_to && end.half === th(e))) { d.card.style.gridColumnEnd = ''; return; }
+  const same = !end || (end.day === e.date_to && end.half === th(e));
+  if (same && !(e.source !== 'queue' && !d.daily && queueOverlaps(e, { day: e.date_to, half: th(e) }))) { d.card.style.gridColumnEnd = ''; return; }
   try {
     if (e.source === 'queue') {
       // 始まりから、引いた所までに入る「挽く半日」の数（日曜・社休日・止める日は数えない）
@@ -150,11 +151,45 @@ async function rzEnd() {
       qDraw();
       toast(`${slotText(s)}までにしました（${halvesText(n)}・手で決めた長さ）。後ろの予定もずらしました`);
     } else {
-      await Store.save({ ...e, date_to: end.day, to_half: d.daily ? 1 : end.half });
-      await load();
-      toast(`${D.md(end.day)}${d.daily ? '' : HALF[end.half]}までにしました`);
+      const newEnd = { day: end.day, half: d.daily ? 1 : end.half };
+      if (!same) await Store.save({ ...e, date_to: newEnd.day, to_half: newEnd.half });
+      // 工場の段の手書きカード：生産順がこのカードの直後から始まっている（または重なった）なら、
+      // 生産順の始まりをこのカードの終わりの次へ動かす＝後ろの予定が全体にずれる（2026-11-27 専務）
+      const moved = !d.daily && await pushQueueAfter(e, { day: e.date_to, half: th(e) }, newEnd);
+      if (!moved) await load();
+      toast(`${D.md(newEnd.day)}${d.daily ? '' : HALF[newEnd.half]}までにしました${moved ? '。後ろの予定もずらしました' : ''}`);
     }
   } catch (err) { alert(err.message); await load(); }
+}
+
+// 生産順の今の始まり（日曜・社休日・止める日を飛ばした実際の枠）
+function queueStartOf(lane) {
+  const q = Q.data[lane];
+  if (!q || !q.todo.length) return null;
+  return slotWork(q.start || nowSlot(), Store.holidays, Store.stopSet(lane));
+}
+// 手書きカード e（終わり＝end）と生産順の始まりが重なっているか
+function queueOverlaps(e, end) {
+  const lane = Number(e.lane_id), st = queueStartOf(lane);
+  return !!st && slotKey(st) >= startKeyOf(e) && slotKey(st) <= end.day + end.half;
+}
+const startKeyOf = e => e.date_from + fh(e);
+// 手書きカードの終わりが oldEnd → newEnd に変わった。生産順の始まりがその直後（か重なり）なら、newEnd の次へ動かす
+async function pushQueueAfter(e, oldEnd, newEnd) {
+  const lane = Number(e.lane_id), st = queueStartOf(lane);
+  if (!st) return false;
+  const stops = Store.stopSet(lane);
+  const next = s => slotWork(slotNext(s), Store.holidays, stops);
+  const touching = slotKey(st) === slotKey(next(oldEnd));                                     // くっついていた
+  const overlap = slotKey(st) >= startKeyOf(e) && slotKey(st) <= newEnd.day + newEnd.half;   // 重なった
+  if (!touching && !overlap) return false;
+  const ns = next(newEnd);
+  if (slotKey(ns) === slotKey(st)) return false;
+  await Store.setQueueStart(lane, ns);
+  await qLoad(lane);
+  await qSync(lane);   // 予定表も読み直される
+  qDraw();
+  return true;
 }
 
 main.addEventListener('pointerdown', ev => {
