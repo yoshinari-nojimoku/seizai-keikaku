@@ -81,7 +81,105 @@ function draw() {
   const opts = { from: S.from, days: S.days, lanes: Store.lanes, entries: S.entries, holidays: Store.holidays, stops: Store.stopMap(), editable: true, showAll: S.showAll };
   main.innerHTML = `<div class="weeks"><div class="week block">${renderWeekGrid(opts)}</div></div>${renderDayList(opts).replace(/class="dl-day /g, 'class="dl-day block ')}`;
   fitFactoryRows(main);
+  if (RZ.sel) selectCard(main.querySelector(`.weeks .card[data-id="${RZ.sel}"]`));   // 描き直しても選んだカードはそのまま
 }
+
+// ---- 予定表：カードの右端を引いて、終わりを延ばす・縮める（2026-11-27 専務） ----
+// カードを押すと選ばれて右端に「つまみ」が出る。左右に引くと、工場の段は半日ずつ・ほかの段は1日ずつ動く。
+// 生産順から作ったバー（自動）は、その長さを「手で決めた長さ」にして生産順を並べ直す（後ろのカードも押される）
+const RZ = { sel: null, drag: null };
+const queueItemOf = e => Object.values(Q.data).flatMap(d => d.todo.concat(d.done))
+  .find(x => 'queue:' + x.id === e.source_ref);
+
+function selectCard(card) {
+  main.querySelectorAll('.weeks .card.sel').forEach(c => { c.classList.remove('sel'); c.querySelector('.c-grip')?.remove(); });
+  RZ.sel = null;
+  if (!card) return;
+  const e = S.entries.find(x => String(x.id) === card.dataset.id);
+  if (!e || card.querySelector('.c-cut.r')) return;   // 右が表の外に出ているカードは、見えている所まで戻ってから
+  if (e.source === 'queue') { const it = queueItemOf(e); if (!it || it.status === '済') return; }
+  card.classList.add('sel');
+  card.insertAdjacentHTML('beforeend', '<span class="c-grip" title="左右に引いて、終わりを延ばす・縮める"></span>');
+  RZ.sel = card.dataset.id;
+}
+
+// 表の半日マス（見出しの午前・午後）を左から順に {day, half, left, right}
+function slotCells() {
+  return [...main.querySelectorAll('.weeks .g-half')].map((el, i) => {
+    const r = el.getBoundingClientRect();
+    return { day: D.add(S.from, Math.floor(i / 2)), half: i % 2, left: r.left, right: r.right, idx: i };
+  });
+}
+
+function rzMove(ev) {
+  const d = RZ.drag;
+  if (!d) return;
+  let i = d.cells.findIndex(c => ev.clientX < c.right);
+  if (i < 0) i = d.cells.length - 1;
+  if (d.daily) i = Math.floor(i / 2) * 2 + 1;   // 工場以外の段は1日単位（その日の午後まで）
+  i = Math.max(i, d.min);
+  const c = d.cells[i];
+  d.end = { day: c.day, half: c.half };
+  d.card.style.gridColumnEnd = String(i + 3);
+  d.tip.textContent = `${D.md(c.day)}（${D.wd(c.day)}）${d.daily ? '' : HALF[c.half]}まで`;
+  d.tip.style.left = Math.min(ev.clientX + 14, window.innerWidth - 170) + 'px';
+  d.tip.style.top = (ev.clientY - 40) + 'px';
+}
+
+async function rzEnd() {
+  const d = RZ.drag;
+  if (!d) return;
+  RZ.drag = null;
+  d.tip.remove();
+  document.body.classList.remove('rz-on');
+  const e = d.e, end = d.end;
+  if (!end || (end.day === e.date_to && end.half === th(e))) { d.card.style.gridColumnEnd = ''; return; }
+  try {
+    if (e.source === 'queue') {
+      // 始まりから、引いた所までに入る「挽く半日」の数（日曜・社休日・止める日は数えない）
+      const lane = Number(e.lane_id), stops = Store.stopSet(lane);
+      let s = slotWork({ day: e.date_from, half: fh(e) }, Store.holidays, stops), n = 1;
+      for (;;) {
+        const nx = slotWork(slotNext(s), Store.holidays, stops);
+        if (slotKey(nx) > end.day + end.half) break;
+        s = nx; n++;
+      }
+      await Store.queueSave({ ...queueItemOf(e), halves_manual: n });
+      await qLoad(lane);
+      await qSync(lane);   // 予定表も読み直される
+      qDraw();
+      toast(`${slotText(s)}までにしました（${halvesText(n)}・手で決めた長さ）。後ろの予定もずらしました`);
+    } else {
+      await Store.save({ ...e, date_to: end.day, to_half: d.daily ? 1 : end.half });
+      await load();
+      toast(`${D.md(end.day)}${d.daily ? '' : HALF[end.half]}までにしました`);
+    }
+  } catch (err) { alert(err.message); await load(); }
+}
+
+main.addEventListener('pointerdown', ev => {
+  const grip = ev.target.closest('.c-grip');
+  if (!grip) return;
+  ev.preventDefault(); ev.stopPropagation();
+  closeCardPop();
+  const card = grip.closest('.card');
+  const e = S.entries.find(x => String(x.id) === card.dataset.id);
+  const lane = Store.lanes.find(l => l.id === Number(e.lane_id));
+  const daily = !lane || lane.kind !== '工場';
+  const cells = slotCells();
+  // 始まりより前には縮められない（始まりが表より前なら、表の左端まで）
+  const startIdx = D.diff(S.from, e.date_from) * 2 + (daily ? 1 : fh(e));
+  const tip = document.createElement('div');
+  tip.className = 'rz-tip';
+  document.body.appendChild(tip);
+  document.body.classList.add('rz-on');
+  RZ.drag = { e, card, daily, cells, min: Math.max(daily ? 1 : 0, startIdx), end: null, tip };
+  grip.setPointerCapture(ev.pointerId);
+  rzMove(ev);
+});
+main.addEventListener('pointermove', rzMove);
+main.addEventListener('pointerup', rzEnd);
+main.addEventListener('pointercancel', () => { if (RZ.drag) { RZ.drag.card.style.gridColumnEnd = ''; RZ.drag.tip.remove(); RZ.drag = null; document.body.classList.remove('rz-on'); } });
 window.addEventListener('resize', () => { if (S.tab === 'sched') fitFactoryRows(main); });
 
 // ---- 手書きカードの窓 ----
@@ -190,10 +288,13 @@ function openCard(e) {
   }
 }
 main.addEventListener('click', ev => {
+  if (ev.target.closest('.c-grip')) return;   // つまみを引いた後のクリックは無視
   const card = ev.target.closest('.card[data-id]');
+  if (!card) selectCard(null);
   if (card) {
     const e = S.entries.find(x => String(x.id) === card.dataset.id);
     if (!e) return;
+    if (card.closest('.weeks')) selectCard(card);
     if (card.closest('.weeks')) showCardPop(e, card, Store.lanes, () => openCard(e));
     else openCard(e);   // スマホの日ごとの一覧は全文が出ているので、そのまま開く
     return;

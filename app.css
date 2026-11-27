@@ -580,3 +580,14 @@ dialog::backdrop { background: rgba(30,26,22,.55); }
 .ks-pb { margin-top: 8px; }
 .ks-pbh { font-size: 13px; font-weight: 800; color: var(--burn2); margin-bottom: 4px; }
 @media (max-width: 900px) { .ks-head { grid-template-columns: 1fr; } }
+
+/* 予定表：選んだカードの右端の「つまみ」（引いて終わりを延ばす・縮める。2026-11-27） */
+.weeks .card.sel { outline: 3px solid var(--burn); outline-offset: 1px; z-index: 3; }
+.c-grip { position: absolute; top: 0; right: 0; bottom: 0; width: 16px; cursor: ew-resize; touch-action: none; z-index: 4;
+  background: var(--burn); border-radius: 0 6px 6px 0; }
+.c-grip::before { content: ''; position: absolute; left: 5px; right: 5px; top: 50%; height: 26px; margin-top: -13px;
+  border-left: 2px solid var(--cream, #FFF7E0); border-right: 2px solid var(--cream, #FFF7E0); }
+body.rz-on, body.rz-on * { cursor: ew-resize !important; user-select: none; }
+.rz-tip { position: fixed; z-index: 80; pointer-events: none; background: var(--burn); color: #fff; font-weight: 800; font-size: 15px;
+  padding: 6px 12px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,.3); white-space: nowrap; }
+@media print { .c-grip { display: none; } .weeks .card.sel { outline: none; } }

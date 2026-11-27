@@ -129,7 +129,8 @@ function qFormDraw() {
   h += `<div class="est" id="qest"></div>`;
   if (!stop) {
     h += `<div class="manual">日数を手で決める：<select data-in="halves_manual"><option value="">自動（記録から）</option>` +
-      Array.from({ length: 12 }, (_, i) => i + 1).map(n => `<option value="${n}"${Number(f.halves_manual) === n ? ' selected' : ''}>${halvesText(n)}</option>`).join('') + '</select></div>';
+      // 予定表で右端を引いて決めた長さは12マスを超えることがあるので、その長さまで選べるようにする
+      Array.from({ length: Math.max(12, Number(f.halves_manual) || 0) }, (_, i) => i + 1).map(n => `<option value="${n}"${Number(f.halves_manual) === n ? ' selected' : ''}>${halvesText(n)}</option>`).join('') + '</select></div>';
   }
   h += `<button type="button" class="save" data-act="save">${f.id ? 'これで直す' : '生産順に入れる'}</button>`;
   if (f.id) h += `<div class="acts2"><button type="button" data-act="dup">複製</button><button type="button" class="danger" data-act="del">削除</button></div>`;
