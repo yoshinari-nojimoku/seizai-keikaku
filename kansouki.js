@@ -2,7 +2,31 @@
 // データはザイコノジステム2（乾燥機投入。入力は樋口さん）→ Edge Function kansouki_status → ここ。
 // Access の乾燥機DB 2.41 は使わない。
 
-const KS = { data: null, error: '' };
+const KS = { data: null, error: '', sample: false };
+
+// 見本（ダミー）：ザイコ2の本番に乾燥機APIが入るまでの仮。日付は今日から数えて作るので、いつ開いても「乾燥中」が出る。
+// 中身は架空（NIDも作り物）。本番に入れば自動で本物に切り替わり、これは使われなくなる。
+function ksSample() {
+  const t = D.today(), d = n => D.add(t, n);
+  const m = (nid, juushu, atsu, haba, nagasa, tougyuu, suuryou) =>
+    ({ nid, juushu, atsu, haba, nagasa, tougyuu, suuryou, zaiseki_m3: Math.round(atsu * haba * nagasa * suuryou / 1e6) / 1e3 });
+  const b = (id, kansouki, a, z, program, meisai) => ({ kansou_id: id, kansouki, kaishibi: d(a), shuuryoubi: d(z), program, nyuukosha: '見本', bikou: '', meisai });
+  const names = ['1号', '3号', '本社除湿', '6号', '7号', '倉庫セカンド', '飛鳥', '飛鳥セカンド', '鮒田セカンド', 'エフバイオス', '配送センター除湿'];
+  return {
+    generated_at: null, today: t, sample: true,
+    kilns: names.map(name => ({ name, koujou: '' })),
+    batches: [
+      b(9001, '7号', -8, 3, '杉37', [m('A26-1101-301', '杉', 37, 120, 4000, '節', 210), m('A26-1101-302', '杉', 37, 120, 4000, '節', 210), m('A26-1102-305', '杉', 37, 105, 4000, '節', 240), m('A26-1103-301', '杉', 37, 150, 4000, '上小', 160)]),
+      b(9002, '6号', -6, 1, '桧構造', [m('A26-1104-311', '桧', 105, 105, 3000, '特一等', 60), m('A26-1104-312', '桧', 105, 105, 3000, '特一等', 60), m('A26-1105-301', '杉', 50, 150, 4000, '節', 90)]),
+      b(9003, '飛鳥', -5, 0, '桧薄板', [m('A26-1106-321', '桧', 16, 140, 4000, 'ム・上', 400), m('A26-1106-322', '桧', 16, 175, 4000, 'ム・上', 320), m('A26-1107-301', '桧', 19, 140, 2000, '節', 500)]),
+      b(9004, 'エフバイオス', -3, 4, '杉構造', [m('A26-1108-301', '杉', 105, 105, 3000, '特一等', 80), m('A26-1108-302', '杉', 105, 105, 3000, '特一等', 80), m('A26-1108-303', '杉', 120, 120, 4000, '特一等', 50), m('A26-1109-301', '杉', 105, 105, 4000, '特一等', 80), m('A26-1109-302', '杉', 45, 105, 4000, '特一等', 200)]),
+      b(9005, '3号', -10, 2, '杉赤', [m('A26-1110-301', '杉', 32, 150, 4000, '赤節', 260), m('A26-1110-302', '杉', 32, 150, 4000, '赤節', 260)]),
+      b(9006, '1号', -12, -2, '桧', [m('A26-1031-301', '桧', 30, 120, 3000, '節', 200)]),
+      b(9007, '1号', 2, 10, '桧', [m('A26-1111-301', '桧', 30, 120, 3000, '節', 200)]),
+      b(9008, '倉庫セカンド', -20, 25, '天乾後', [m('A26-1001-301', '杉', 25, 120, 4000, '節', 300), m('A26-1001-302', '杉', 25, 150, 4000, '節', 260)]),
+    ],
+  };
+}
 // 乾燥機の置き場所（ザイコ2が工場名を返さないときの補い。乾燥機計画 config.py の KILN_SITE と同じ）
 const KILN_SITE = { '7号': '第2倉庫', '6号': '第2倉庫', '倉庫セカンド': '第2倉庫', '3号': '本社', '1号': '本社', '本社除湿': '本社',
   '飛鳥': '飛鳥工場', '飛鳥セカンド': '飛鳥工場', '鮒田セカンド': '鮒田工場', 'エフバイオス': 'エフバイオス', '配送センター除湿': '配送センター' };
@@ -23,7 +47,8 @@ async function ksLoad() {
         try { const b = await error.context.json(); if (b && b.error) m = b.error; } catch (e) {}
         throw new Error(m);
       }
-      if (data.notReady) { KS.data = null; KS.error = data.error; }
+      KS.sample = !!data.notReady;
+      if (data.notReady) { KS.data = ksSample(); KS.error = data.error; }   // 本番に入るまでは見本を出す
       else KS.data = data;
     }
   } catch (e) { KS.data = null; KS.error = e.message; }
@@ -100,9 +125,11 @@ function ksDraw() {
         (foot ? `<div class="ks-foot">${foot}</div>` : '') + '</button>';
     }).join('') + '</div></div>';
   }).join('');
-  box.innerHTML = head + cards;
+  const note = KS.sample ? `<div class="block msg" style="max-width:none;margin:0 0 16px;padding:14px 18px;border:3px dashed #953525">` +
+    `これは<b>見本（ダミー）</b>です。中身は作り物です。<br><small>${esc(KS.error || '')}／社長の本番反映が済むと、自動で本物（樋口さんの入力）に切り替わります。</small></div>` : '';
+  box.innerHTML = head + note + cards;
   $('ks-meta').innerHTML = `乾燥中 <b>${nNow}</b> 基・空き <b>${nFree}</b> 基` + (outSoon.length ? `<br>もうすぐ出庫：${esc(outSoon.join('・'))}` : '') +
-    `<br><small>ザイコノジステム2より／${KS.data.generated_at ? new Date(KS.data.generated_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</small>`;
+    `<br><small>${KS.sample ? '見本（ダミー）' : 'ザイコノジステム2より'}${KS.data.generated_at ? '／' + new Date(KS.data.generated_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</small>`;
 }
 
 // 乾燥機を押す → その乾燥機の中身（NIDごと）
