@@ -637,3 +637,11 @@ body.rz-on, body.rz-on * { cursor: ew-resize !important; user-select: none; }
 #kp-warn { color: var(--maroon); min-height: 1em; margin: 4px 0 0; }
 #kp-box { margin-bottom: 26px; }
 #kp-box .kp-tools { margin-top: 6px; }
+/* バーを引いて動かす */
+.kp-bar { cursor: grab; touch-action: none; user-select: none; }
+.kp-bar.dragging { cursor: grabbing; opacity: .85; outline: 3px dashed var(--ink); z-index: 5; }
+.kp-grip { position: absolute; top: 0; right: 0; width: 10px; height: 100%; cursor: ew-resize; background: linear-gradient(90deg, transparent 0 3px, rgba(30,26,22,.35) 3px 5px, transparent 5px 6px, rgba(30,26,22,.35) 6px 8px, transparent 8px); }
+.kp-bar .kp-out { right: 12px; }
+.kp-tip { position: fixed; z-index: 1000; background: var(--ink); color: var(--cream); padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 800; pointer-events: none; white-space: nowrap; }
+.kp-group { white-space: nowrap; overflow: visible; }
+.kp-group-fill { background: var(--burn2); }

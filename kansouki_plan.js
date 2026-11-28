@@ -58,7 +58,7 @@ function kpDraw() {
   });
   let row = 3;
   for (const g of KP_GROUPS) {
-    h += `<div class="kp-group" style="grid-column: 1 / span ${N + 1};grid-row:${row}">${esc(g.name)}</div>`;
+    h += `<div class="kp-group" style="grid-column:1;grid-row:${row}">${esc(g.name)}</div><div class="kp-group-fill" style="grid-column: 2 / span ${N};grid-row:${row}"></div>`;
     row++;
     for (const k of g.kilns) {
       const list = KP.plans.filter(p => p.kiln === k).sort((a, b) => a.date_from.localeCompare(b.date_from));
@@ -83,7 +83,7 @@ function kpDraw() {
           `<span class="kp-b1">${esc(lines[0] || '（中身なし）')}${p.done ? ' <i class="kp-done">済</i>' : ''}</span>` +
           (sec ? '' : lines.slice(1, 3).map(l => `<span class="kp-bl">${esc(l)}</span>`).join('')) +
           (p.idou_sumi ? `<span class="kp-idou">出後の移動先済</span>` : '') +
-          `<span class="kp-out">${D.md(p.date_to)}出</span></button>`;
+          `<span class="kp-out">${D.md(p.date_to)}出</span>${cutR ? '' : '<span class="kp-grip" title="右へ・左へ引いて日数を変える"></span>'}</button>`;
       }
       row += nt;
     }
@@ -202,6 +202,7 @@ document.addEventListener('click', ev => {
     return kpLoad();
   }
   const bar = ev.target.closest('[data-plan]');
+  if (bar && KP.justDragged) { KP.justDragged = false; return; }   // 引いた直後のクリックは窓を開かない
   if (bar) { ev.stopPropagation(); const p = KP.plans.find(x => String(x.id) === bar.dataset.plan); if (p) kpOpen(p); return; }
   const cell = ev.target.closest('.kp-cell');
   if (cell) {
@@ -221,3 +222,68 @@ function kpSample() {
     p('飛鳥セカンド0号', -40, 50, '10/19入庫　杉4・桧3\n6山　3ヶ月', '段取り済'),
   ];
 }
+
+// ---- バーを引いて動かす（2026-11-28 専務）----
+// バーの真ん中を引く＝日程ごと動かす（上下に引けば別の乾燥機へ）。右端（つまみ）を引く＝出庫日を変える（日数が変わる）。
+// 1日単位。5px より動かさなければ、ふつうのクリック（窓が開く）。
+function kpDayIndexAt(x) {
+  const hs = [...document.querySelectorAll('#kp-box .kp-dh')];
+  for (let i = 0; i < hs.length; i++) { if (x < hs[i].getBoundingClientRect().right) return i; }
+  return hs.length - 1;
+}
+document.addEventListener('pointerdown', ev => {
+  const bar = ev.target.closest('#kp-box .kp-bar');
+  if (!bar || ev.button !== 0) return;
+  const p = KP.plans.find(x => String(x.id) === bar.dataset.plan);
+  if (!p) return;
+  const resize = !!ev.target.closest('.kp-grip');
+  KP.drag = { p, bar, resize, x0: ev.clientX, y0: ev.clientY, i0: kpDayIndexAt(ev.clientX), moved: false,
+    from: p.date_from, to: p.date_to, kiln: p.kiln, col0: bar.style.gridColumn };
+  bar.setPointerCapture(ev.pointerId);
+});
+document.addEventListener('pointermove', ev => {
+  const g = KP.drag;
+  if (!g) return;
+  if (!g.moved && Math.abs(ev.clientX - g.x0) < 5 && Math.abs(ev.clientY - g.y0) < 5) return;
+  if (!g.moved) {
+    g.moved = true; g.bar.classList.add('dragging');
+    g.tip = document.createElement('div'); g.tip.className = 'kp-tip'; document.body.appendChild(g.tip);
+  }
+  const dd = kpDayIndexAt(ev.clientX) - g.i0;
+  if (g.resize) {
+    g.from = g.p.date_from;
+    g.to = D.add(g.p.date_to, dd);
+    if (g.to <= g.from) g.to = D.add(g.from, 1);
+  } else {
+    g.from = D.add(g.p.date_from, dd); g.to = D.add(g.p.date_to, dd);
+    g.bar.style.pointerEvents = 'none';   // 下のマスを拾うため
+    const cell = document.elementsFromPoint(ev.clientX, ev.clientY).find(el => el.classList && el.classList.contains('kp-cell'));
+    g.bar.style.pointerEvents = '';
+    if (cell) g.kiln = cell.dataset.kiln;
+  }
+  const a = Math.max(0, D.diff(KP.from, g.from)), z = Math.min(KP.days, D.diff(KP.from, g.to));
+  if (z > a) g.bar.style.gridColumn = `${a + 2} / ${z + 2}`;
+  const off = d => D.isSun(d) || (Store.holidays || {})[d];
+  const w = [off(g.from) ? '入庫日が休み' : '', off(g.to) ? '出庫日が休み' : ''].filter(Boolean).join('・');
+  g.tip.innerHTML = `${g.kiln !== g.p.kiln ? `<b>${esc(g.kiln)}</b>へ　` : ''}${D.md(g.from)}（${D.wd(g.from)}）入れ → ${D.md(g.to)}（${D.wd(g.to)}）出　${D.diff(g.from, g.to)}日` +
+    (w ? `<br><span style="color:#C00000">${w}</span>` : '');
+  g.tip.style.left = Math.min(ev.clientX + 14, innerWidth - 260) + 'px';
+  g.tip.style.top = (ev.clientY - 52) + 'px';
+});
+document.addEventListener('pointerup', async ev => {
+  const g = KP.drag;
+  if (!g) return;
+  KP.drag = null;
+  if (!g.moved) return;
+  KP.justDragged = true; setTimeout(() => { KP.justDragged = false; }, 300);
+  g.tip && g.tip.remove();
+  g.bar.classList.remove('dragging');
+  const rec = { date_from: g.from, date_to: g.to, kiln: g.kiln };
+  if (rec.date_from === g.p.date_from && rec.date_to === g.p.date_to && rec.kiln === g.p.kiln) { g.bar.style.gridColumn = g.col0; return; }
+  try {
+    if (!Store.remote) Object.assign(KP.mem.find(x => x.id === g.p.id), rec);
+    else { const { error } = await Store.sb.from('kiln_plans').update(rec).eq('id', g.p.id); if (error) throw error; }
+    toast(`${rec.kiln}　${D.md(rec.date_from)}入れ → ${D.md(rec.date_to)}出 にしました`);
+  } catch (e) { toast('変えられませんでした：' + e.message); }
+  kpLoad();
+});
