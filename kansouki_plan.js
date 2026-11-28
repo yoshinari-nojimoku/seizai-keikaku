@@ -327,7 +327,10 @@ async function kpLookup(nids) {
       const { data, error } = await Store.sb.functions.invoke('gzai_lookup', { body: { nids: want } });
       if (error) { let m = error.message; try { const b = await error.context.json(); if (b && b.error) m = b.error; } catch (e) {} throw new Error(m); }
       for (const it of data.items || []) KP.info[it.nid] = it;
-      KP.kijun = data.kijun ? `在庫は ${data.kijun} 時点（ザイコノジステム2から毎日11時台に写したもの）` : '';
+      // スプシの日時は数（1899-12-30からの日数）で来ることがある → 「11/28 11:47」に直す
+      let kj = data.kijun;
+      if (kj && !isNaN(Number(kj))) { const d = new Date(Date.UTC(1899, 11, 30) + Number(kj) * 864e5); kj = `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; }
+      KP.kijun = kj ? `在庫は ${kj} 時点（ザイコノジステム2から毎日11時台に写したもの）` : '';
     }
   } catch (e) { KP.kijun = 'NIDの中身を調べられませんでした：' + e.message; }
   kpMeisaiDraw();
