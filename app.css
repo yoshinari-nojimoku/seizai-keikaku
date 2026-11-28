@@ -635,3 +635,5 @@ body.rz-on, body.rz-on * { cursor: ew-resize !important; user-select: none; }
 .kp-checks label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); margin: 0; }
 .kp-dlg .acts .danger { color: var(--maroon); border-color: var(--maroon); }
 #kp-warn { color: var(--maroon); min-height: 1em; margin: 4px 0 0; }
+#kp-box { margin-bottom: 26px; }
+#kp-box .kp-tools { margin-top: 6px; }
