@@ -418,6 +418,11 @@ document.addEventListener('keydown', ev => {
   gate.classList.add('hide');
   $('who').innerHTML = Store.remote ? `${esc(Store.user.email)} <a href="#" id="logout">ログアウト</a>` : '試作モード（保存されません）';
   if ($('logout')) $('logout').onclick = ev => { ev.preventDefault(); Store.logout(); };
+  if (Store.kilnOnly) {   // 乾燥機の予定だけ書ける人（樋口さんなど）：ほかの部屋は出さない
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('hide', b.dataset.tab !== 'kansouki'));
+    setTab('kansouki');
+    return;
+  }
   try {
     await qLoadAll();
     // 開いたときに、生産順から作るバーを予定表とそろえる（社休日が増えた時などのため。変わった所だけ書く）

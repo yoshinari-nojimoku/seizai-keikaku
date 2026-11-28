@@ -45,7 +45,15 @@ const Store = {
     this.stops = st.data || [];
     this.speed = (sp.data || []).map(r => ({ ...r, length_m: Number(r.length_m), per_day: Number(r.per_day), m3_day: Number(r.m3_day) }));
     if (l.error) throw new Error('段の読み込みに失敗しました：' + l.error.message);
-    if (!l.data.length) return { notEditor: true };   // 鍵（RLS）で弾かれると0件になる
+    if (!l.data.length) {   // 鍵（RLS）で弾かれると0件になる
+      const k = await this.sb.rpc('can_write_kiln');
+      if (k.data === true) {   // 乾燥機の予定だけ書ける人（樋口さんなど）
+        this.kilnOnly = true;
+        this.holidays = Object.fromEntries((h.data || []).map(x => [x.day, x.label || '休み']));
+        return { ok: true };
+      }
+      return { notEditor: true };
+    }
     this.lanes = l.data;
     this.holidays = Object.fromEntries((h.data || []).map(x => [x.day, x.label || '休み']));
     return { ok: true };

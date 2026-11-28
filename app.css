@@ -591,3 +591,47 @@ body.rz-on, body.rz-on * { cursor: ew-resize !important; user-select: none; }
 .rz-tip { position: fixed; z-index: 80; pointer-events: none; background: var(--burn); color: #fff; font-weight: 800; font-size: 15px;
   padding: 6px 12px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,.3); white-space: nowrap; }
 @media print { .c-grip { display: none; } .weeks .card.sel { outline: none; } }
+
+/* 乾燥機の予定表（kansouki_plan.js・2026-11-28）：スプシのガントチャートと同じ色 */
+.kp-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 26px 0 10px; color: var(--cream); }
+.kp-title { font-size: 20px; margin-right: 8px; }
+.kp-range { font-weight: 800; margin: 0 4px; }
+.kp-hint { font-size: 12px; font-weight: 700; opacity: .85; }
+.kp-scroll { overflow-x: auto; padding: 0; }
+.kp-grid { display: grid; min-width: max-content; grid-auto-rows: minmax(30px, auto); font-size: 12px; background: var(--paper); }
+.kp-corner, .kp-kiln { position: sticky; left: 0; z-index: 3; background: var(--head); border-right: 2px solid var(--line); font-weight: 800; color: var(--ink);
+  display: flex; align-items: center; padding: 4px 8px; }
+.kp-kiln { border-bottom: 1px solid rgba(184,146,90,.5); min-height: 62px; }
+.kp-kiln.sec { min-height: 30px; font-size: 11px; }
+.kp-dh, .kp-wd { text-align: center; font-weight: 800; background: var(--head); border-left: 1px solid rgba(184,146,90,.4); padding: 2px 0; line-height: 1.15; }
+.kp-dh small { display: block; font-size: 10px; color: var(--maroon); }
+.kp-wd { font-size: 11px; border-bottom: 2px solid var(--line); }
+.kp-dh.off, .kp-wd.off, .kp-cell.off { background: #CCE1F5; }   /* スプシと同じ：休みの日は薄い青 */
+.kp-dh.today, .kp-wd.today { background: var(--gold); color: var(--ink); }
+.kp-cell.today { box-shadow: inset 2px 0 0 var(--gold), inset -2px 0 0 var(--gold); }
+.kp-group { position: sticky; left: 0; background: var(--burn2); color: var(--cream); font-weight: 800; padding: 3px 10px; z-index: 2; }
+.kp-cell { border-left: 1px solid rgba(184,146,90,.3); border-bottom: 1px solid rgba(184,146,90,.5); cursor: pointer; }
+.kp-cell:hover { background: rgba(233,185,73,.25); }
+.kp-bar { z-index: 1; margin: 3px 1px; border: 1.5px solid var(--ink); border-radius: 6px; padding: 3px 6px; text-align: left; color: var(--ink);
+  display: flex; flex-direction: column; gap: 1px; overflow: hidden; font-size: 11px; line-height: 1.3; font-weight: 700; position: relative; min-width: 0; }
+.kp-bar:hover { outline: 3px solid var(--gold); }
+.kp-bar.cl { border-left: 3px dashed var(--ink); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.kp-bar.cr { border-right: 3px dashed var(--ink); border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.kp-bar.sec { flex-direction: row; align-items: center; gap: 8px; padding: 1px 6px; }
+.kp-b1 { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kp-bl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kp-done { font-style: normal; background: var(--plus); color: #fff; border-radius: 4px; padding: 0 4px; margin-left: 4px; font-size: 10px; }
+.kp-idou { color: #C00000; font-weight: 800; white-space: nowrap; }
+.kp-out { position: absolute; right: 4px; bottom: 2px; font-size: 10px; font-weight: 800; color: var(--burn2); background: rgba(255,255,255,.6); border-radius: 3px; padding: 0 3px; }
+.kp-bar.sec .kp-out { position: static; margin-left: auto; }
+.kp-dlg { width: min(560px, 96vw); }
+.kp-dlg label { display: block; font-size: 12px; font-weight: 800; color: var(--burn2); margin: 10px 0 4px; }
+.kp-dlg select, .kp-dlg input[type=date], .kp-dlg textarea { width: 100%; padding: 8px; font-size: 15px; font-weight: 700; border: 2px solid var(--line); border-radius: 8px; background: var(--paper); }
+.kp-dlg textarea { min-height: 120px; line-height: 1.6; }
+.kp-dlg .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kp-dlg .kp-c { background: var(--c); color: var(--ink); }
+.kp-dlg .kp-c.on { outline: 3px solid var(--ink); outline-offset: 1px; }
+.kp-checks { display: flex; gap: 18px; margin-top: 8px; }
+.kp-checks label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); margin: 0; }
+.kp-dlg .acts .danger { color: var(--maroon); border-color: var(--maroon); }
+#kp-warn { color: var(--maroon); min-height: 1em; margin: 4px 0 0; }

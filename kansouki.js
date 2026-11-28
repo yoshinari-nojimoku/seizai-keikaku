@@ -79,7 +79,8 @@ function ksDraw() {
     `<div class="gb-sum"><div class="gb-title dg">乾燥機</div><div class="gb-meta" id="ks-meta"></div></div>` +
     `<div class="gb-acts"><button class="bigbtn dg" id="ks-reload">読み直す</button></div></div>`;
   if (!KS.data) {
-    box.innerHTML = head + `<div class="block msg">${esc(KS.error || 'データがありません')}<br><small>乾燥機の入庫・出庫は、ザイコノジステム2の「乾燥機投入」に入力します（樋口さん）。</small></div>`;
+    box.innerHTML = head + `<div class="block msg">${esc(KS.error || 'データがありません')}<br><small>乾燥機の入庫・出庫は、ザイコノジステム2の「乾燥機投入」に入力します（樋口さん）。</small></div><div id="kp-box"></div>`;
+    kpLoad();
     return;
   }
   const today = D.today();
@@ -127,7 +128,8 @@ function ksDraw() {
   }).join('');
   const note = KS.sample ? `<div class="block msg" style="max-width:none;margin:0 0 16px;padding:14px 18px;border:3px dashed #953525">` +
     `これは<b>見本（ダミー）</b>です。中身は作り物です。<br><small>${esc(KS.error || '')}／社長の本番反映が済むと、自動で本物（樋口さんの入力）に切り替わります。</small></div>` : '';
-  box.innerHTML = head + note + cards;
+  box.innerHTML = head + note + cards + '<div id="kp-box"></div>';
+  kpLoad();
   $('ks-meta').innerHTML = `乾燥中 <b>${nNow}</b> 基・空き <b>${nFree}</b> 基` + (outSoon.length ? `<br>もうすぐ出庫：${esc(outSoon.join('・'))}` : '') +
     `<br><small>${KS.sample ? '見本（ダミー）' : 'ザイコノジステム2より'}${KS.data.generated_at ? '／' + new Date(KS.data.generated_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</small>`;
 }
