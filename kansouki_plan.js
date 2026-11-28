@@ -26,10 +26,12 @@ async function kpLoad() {
     if (!Store.remote) {
       if (!KP.mem) KP.mem = kpSample();
       KP.plans = KP.mem.filter(p => p.date_from < to && p.date_to > KP.from);
+      KP.hasMeisai = true;
     } else {
       const { data, error } = await Store.sb.from('kiln_plans').select('*').lt('date_from', to).gt('date_to', KP.from).order('date_from');
       if (error) throw new Error(/kiln_plans/.test(error.message) ? '予定表の準備がまだです（DBに表を作る操作が済んでいません）' : error.message);
       KP.plans = data;
+      KP.hasMeisai = data.length ? 'meisai' in data[0] : KP.hasMeisai;
     }
   } catch (e) { KP.plans = []; KP.error = e.message; }
   kpDraw();
@@ -82,6 +84,7 @@ function kpDraw() {
           `style="grid-column:${a + 2} / ${z + 2};grid-row:${row + p._t};background:${KP_COLORS[p.color] || '#fff'}">` +
           `<span class="kp-b1">${esc(lines[0] || '（中身なし）')}${p.done ? ' <i class="kp-done">済</i>' : ''}</span>` +
           (sec ? '' : lines.slice(1, 3).map(l => `<span class="kp-bl">${esc(l)}</span>`).join('')) +
+          ((p.meisai || []).length && !sec ? `<span class="kp-lots">${p.meisai.length}ロット</span>` : '') +
           (p.idou_sumi ? `<span class="kp-idou">出後の移動先済</span>` : '') +
           `<span class="kp-out">${D.md(p.date_to)}出</span>${cutR ? '' : '<span class="kp-grip" title="右へ・左へ引いて日数を変える"></span>'}</button>`;
       }
@@ -108,6 +111,14 @@ function kpDialog() {
     <label>中身</label><textarea id="kp-body" placeholder="例）桧　13〜19㎜系&#10;16山（12/7出）"></textarea>
     <label>色</label><div class="seg" id="kp-color">${Object.keys(KP_COLORS).map(c => `<button type="button" class="dbtn kp-c" data-v="${c}" style="--c:${KP_COLORS[c]}">${c}</button>`).join('')}</div>
     <div class="kp-checks"><label><input type="checkbox" id="kp-done"> 済</label><label><input type="checkbox" id="kp-idou"> 出後の移動先済</label></div>
+    <div id="kp-nidbox">
+      <label>中身（NID）　<span class="kp-sum" id="kp-sum"></span></label>
+      <div class="kp-nidin"><textarea id="kp-nidtext" placeholder="NIDを貼る・打つ（改行・空白・カンマ区切り。A26-1029-303 でも A261029303 でも可）"></textarea>
+        <button type="button" class="dbtn primary" id="kp-nidadd">足す</button></div>
+      <div class="kp-allto">移動先をまとめて：<select id="kp-allto"><option value="">―</option>${KP_IDOUSAKI.map(x => `<option>${x}</option>`).join('')}</select></div>
+      <div class="kp-mtab" id="kp-mtab"></div>
+      <p class="hint" id="kp-kijun"></p>
+    </div>
     <div class="acts"><button type="button" class="dbtn primary" id="kp-save">保存</button><span class="spacer"></span>
       <button type="button" class="dbtn danger" id="kp-del">削除</button><button type="button" class="dbtn" id="kp-close">閉じる</button></div>
     <p class="hint" id="kp-meta"></p></form>`;
@@ -132,6 +143,10 @@ function kpDialog() {
   dlg.querySelector('#kp-save').onclick = kpSave;
   dlg.querySelector('#kp-del').onclick = kpDelete;
   dlg.querySelector('#kp-close').onclick = () => dlg.close();
+  dlg.querySelector('#kp-nidadd').onclick = kpNidAdd;
+  dlg.querySelector('#kp-allto').onchange = ev => { if (!ev.target.value) return; KP.meisai.forEach(m => { m.idousaki = ev.target.value; }); ev.target.value = ''; kpMeisaiDraw(); };
+  dlg.querySelector('#kp-mtab').addEventListener('change', ev => { const t = ev.target.closest('select[data-i]'); if (t) KP.meisai[Number(t.dataset.i)].idousaki = t.value; });
+  dlg.querySelector('#kp-mtab').addEventListener('click', ev => { const b = ev.target.closest('[data-del]'); if (b) { KP.meisai.splice(Number(b.dataset.del), 1); kpMeisaiDraw(); } });
   dlg._warn = warn;
   return dlg;
 }
@@ -151,6 +166,11 @@ function kpOpen(p) {
   dlg.querySelector('#kp-del').classList.toggle('hide', !p.id);
   dlg.querySelector('#kp-meta').textContent = p.id && p.updated_at
     ? `最後に直した人：${p.updated_by || (p.source === 'sheet' ? 'スプシから移した' : '')}（${new Date(p.updated_at).toLocaleString('ja-JP')}）` : '';
+  KP.meisai = (p.meisai || []).map(m => ({ ...m }));
+  dlg.querySelector('#kp-nidtext').value = '';
+  dlg.querySelector('#kp-nidbox').classList.toggle('hide', !KP.hasMeisai);
+  kpMeisaiDraw();
+  kpLookup(KP.meisai.map(m => m.nid));
   dlg._warn();
   dlg.showModal();
   setTimeout(() => dlg.querySelector('#kp-body').focus(), 50);
@@ -161,6 +181,7 @@ async function kpSave() {
   const rec = { kiln: v('kp-kiln'), date_from: v('kp-from'), date_to: v('kp-to'), body: v('kp-body').trim(),
     color: (document.querySelector('#kp-color .kp-c.on') || {}).dataset?.v || '白',
     done: document.getElementById('kp-done').checked, idou_sumi: document.getElementById('kp-idou').checked };
+  if (KP.hasMeisai) rec.meisai = KP.meisai.map(m => ({ nid: m.nid, idousaki: m.idousaki || '' }));
   if (!rec.date_from || !rec.date_to || rec.date_to <= rec.date_from) return toast('出庫日は入庫日より後にしてください');
   try {
     if (!Store.remote) {
@@ -287,3 +308,61 @@ document.addEventListener('pointerup', async ev => {
   } catch (e) { toast('変えられませんでした：' + e.message); }
   kpLoad();
 });
+
+// ---- 中身（NID）：貼る → 在庫から樹種・寸法・等級・枚数を引いて表示。移動先は1つずつ／まとめて ----
+const KP_IDOUSAKI = ['本社', '第3土場', '小阪土場', '鮒田工場', '飛鳥工場', '配送センター', '第2倉庫'];
+KP.info = {};      // NID → 在庫の中身（スプシ「在庫サマリー」から。毎日11時台の在庫）
+KP.meisai = [];
+const kpNorm = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const kpNidText = n => String(n).replace(/^([A-Z])(\d{2})(\d{4})(\d+)$/, '$1$2-$3-$4');
+
+async function kpLookup(nids) {
+  const want = nids.filter(n => !KP.info[n]);
+  if (!want.length) return kpMeisaiDraw();
+  try {
+    if (!Store.remote) {   // 試作モード：作り物
+      want.forEach((n, i) => { KP.info[n] = { nid: n, juushu: i % 2 ? '桧' : '杉', nagasa: 4000, haba: 145, atsu: 20, tougyuu: 'ム・上', suuryou: 180, zaiseki_m3: 2.088, basho: '飛鳥工場', joutai: 'G材' }; });
+      KP.kijun = '試作モード（作り物）';
+    } else {
+      const { data, error } = await Store.sb.functions.invoke('gzai_lookup', { body: { nids: want } });
+      if (error) { let m = error.message; try { const b = await error.context.json(); if (b && b.error) m = b.error; } catch (e) {} throw new Error(m); }
+      for (const it of data.items || []) KP.info[it.nid] = it;
+      KP.kijun = data.kijun ? `在庫は ${data.kijun} 時点（ザイコノジステム2から毎日11時台に写したもの）` : '';
+    }
+  } catch (e) { KP.kijun = 'NIDの中身を調べられませんでした：' + e.message; }
+  kpMeisaiDraw();
+}
+
+function kpNidAdd() {
+  const ta = document.getElementById('kp-nidtext');
+  const list = (ta.value.match(/[A-Za-z]\s*-?\s*\d{2}\s*-?\s*\d{4}\s*-?\s*\d{3}/g) || []).map(kpNorm);
+  if (!list.length) return toast('NIDが見つかりません（例 A26-1029-303）');
+  const have = new Set(KP.meisai.map(m => m.nid));
+  let dup = 0;
+  for (const n of list) { if (have.has(n)) { dup++; continue; } have.add(n); KP.meisai.push({ nid: n, idousaki: '' }); }
+  ta.value = '';
+  if (dup) toast(`${dup}件は入っているので飛ばしました`);
+  kpLookup(list);
+}
+
+function kpMeisaiDraw() {
+  const tab = document.getElementById('kp-mtab');
+  if (!tab) return;
+  let m3 = 0, nai = 0;
+  const rows = KP.meisai.map((m, i) => {
+    const x = KP.info[m.nid];
+    if (x && x.zaiseki_m3) m3 += Number(x.zaiseki_m3);
+    const none = x && x.joutai === 'なし';
+    if (none) nai++;
+    const cells = !x ? '<td colspan="8" class="kp-wait">調べています…</td>' : none ? '<td colspan="8" class="kp-none">在庫に見つかりません（NIDの打ち間違い・出荷済み・今日の入庫など）</td>' :
+      `<td><span class="c-sp ${x.juushu === '桧' ? 'h' : x.juushu === '杉' ? 's' : ''}">${esc(x.juushu)}</span></td><td>${x.nagasa}</td><td>${x.haba}</td><td>${x.atsu}</td>` +
+      `<td>${esc(x.tougyuu)}</td><td>${x.suuryou}</td><td>${Number(x.zaiseki_m3).toFixed(3)}</td><td class="kp-basho">${esc(x.joutai === '乾燥機内' ? '乾燥機 ' + x.basho : x.basho)}</td>`;
+    return `<tr class="${none ? 'none' : ''}"><td class="kp-nid">${kpNidText(m.nid)}</td>${cells}` +
+      `<td><select data-i="${i}"><option value="">―</option>${KP_IDOUSAKI.map(o => `<option ${o === m.idousaki ? 'selected' : ''}>${o}</option>`).join('')}</select></td>` +
+      `<td><button type="button" class="kp-x" data-del="${i}" title="外す">×</button></td></tr>`;
+  }).join('');
+  tab.innerHTML = KP.meisai.length ? `<table><thead><tr><th>NID</th><th>樹種</th><th>長さ</th><th>幅</th><th>厚</th><th>等級</th><th>枚数</th><th>材積</th><th>今の場所</th><th>移動先</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+    : '<p class="hint">まだ入っていません。上の欄にNIDを貼って「足す」を押してください。</p>';
+  document.getElementById('kp-sum').textContent = KP.meisai.length ? `${KP.meisai.length}ロット・${m3.toFixed(3)}㎥${nai ? `（見つからない ${nai}件）` : ''}` : '';
+  document.getElementById('kp-kijun').textContent = KP.kijun || '';
+}

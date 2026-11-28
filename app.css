@@ -624,7 +624,7 @@ body.rz-on, body.rz-on * { cursor: ew-resize !important; user-select: none; }
 .kp-idou { color: #C00000; font-weight: 800; white-space: nowrap; }
 .kp-out { position: absolute; right: 4px; bottom: 2px; font-size: 10px; font-weight: 800; color: var(--burn2); background: rgba(255,255,255,.6); border-radius: 3px; padding: 0 3px; }
 .kp-bar.sec .kp-out { position: static; margin-left: auto; }
-.kp-dlg { width: min(560px, 96vw); }
+
 .kp-dlg label { display: block; font-size: 12px; font-weight: 800; color: var(--burn2); margin: 10px 0 4px; }
 .kp-dlg select, .kp-dlg input[type=date], .kp-dlg textarea { width: 100%; padding: 8px; font-size: 15px; font-weight: 700; border: 2px solid var(--line); border-radius: 8px; background: var(--paper); }
 .kp-dlg textarea { min-height: 120px; line-height: 1.6; }
@@ -645,3 +645,24 @@ body.rz-on, body.rz-on * { cursor: ew-resize !important; user-select: none; }
 .kp-tip { position: fixed; z-index: 1000; background: var(--ink); color: var(--cream); padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 800; pointer-events: none; white-space: nowrap; }
 .kp-group { white-space: nowrap; overflow: visible; }
 .kp-group-fill { background: var(--burn2); }
+/* 乾燥機の予定：中身（NID） */
+#kpdlg { width: min(900px, 96vw); }
+.kp-dlg { width: 100%; max-height: 92vh; overflow-y: auto; overflow-x: hidden; }
+.kp-lots { font-size: 10px; font-weight: 800; color: var(--burn2); }
+.kp-sum { color: var(--plus); font-size: 13px; }
+.kp-nidin { display: flex; gap: 8px; align-items: stretch; }
+.kp-nidin textarea { min-height: 56px; flex: 1; font-size: 14px; }
+.kp-allto { margin: 8px 0 4px; font-size: 13px; font-weight: 800; color: var(--burn2); }
+.kp-allto select { width: auto; padding: 4px 8px; font-size: 13px; }
+.kp-mtab { max-height: 40vh; overflow: auto; background: var(--paper); border-radius: 8px; }
+.kp-mtab table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.kp-mtab th { position: sticky; top: 0; background: var(--head); padding: 4px 6px; font-size: 12px; text-align: center; }
+.kp-mtab td { border-top: 1px solid rgba(184,146,90,.4); padding: 3px 6px; text-align: right; white-space: nowrap; }
+.kp-mtab td.kp-nid, .kp-mtab td.kp-basho { text-align: left; font-weight: 800; }
+.kp-mtab td.kp-none { text-align: left; color: var(--maroon); font-weight: 800; }
+.kp-mtab td.kp-wait { text-align: left; color: var(--burn2); }
+.kp-mtab tr.none { background: #F8E1DC; }
+.kp-mtab select { width: auto; padding: 2px 4px; font-size: 13px; border-width: 1px; }
+.kp-x { border: none; background: transparent; color: var(--maroon); font-size: 18px; font-weight: 800; cursor: pointer; }
+.kp-mtab .c-sp.h { color: #B2385F; }
+.kp-mtab .c-sp.s { color: #2F7FAA; }
